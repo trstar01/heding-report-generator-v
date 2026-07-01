@@ -234,12 +234,17 @@ ${i.consultContent || '상담 내용 없음'}
 
     const content = response.content[0].text;
 
-    let analysis;
+   let analysis;
     try {
       const clean = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       analysis = JSON.parse(clean);
-    } catch {
-      return res.status(500).json({ error: '리포트 데이터 파싱 실패: ' + content.substring(0, 200) });
+    } catch (e) {
+      return res.status(500).json({
+        error: '리포트 데이터 파싱 실패: ' + e.message,
+        stopReason: response.stop_reason,
+        contentLength: content.length,
+        contentEnd: content.substring(content.length - 300)
+      });
     }
 
     // inputs 첨부
