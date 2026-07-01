@@ -228,7 +228,7 @@ ${i.consultContent || '상담 내용 없음'}
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4500,
+      max_tokens: 8000,
       messages: [{ role: 'user', content: prompt }]
     });
 
