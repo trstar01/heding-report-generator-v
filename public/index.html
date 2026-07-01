@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HEDING 이직 진단 리포트 생성기</title>
+<style>
+/* ── 폰트 ── */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@300;400;500;700;800&display=swap');
+
+:root {
+  --navy: #192638;
+  --navy2: #1E3256;
+  --gold: #876B22;
+  --gold2: #A8862C;
+  --red: #A02018;
+  --green: #124826;
+  --ink: #111;
+  --ink2: #333;
+  --ink3: #555;
+  --ink4: #888;
+  --rule: #E0DFD9;
+  --bg: #F4F3EF;
+  --white: #fff;
+  --serif: 'Noto Serif KR', serif;
+  --sans: 'Noto Sans KR', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--sans);
+  background: #0F1923;
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+/* ── 앱 레이아웃 ── */
+.app-header {
+  background: var(--navy);
+  padding: 16px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.app-logo {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 3px;
+}
+.app-sub {
+  font-size: 11px;
+  color: var(--gold2);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.app-body {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  min-height: calc(100vh - 57px);
+}
+
+/* ── 사이드바 (입력) ── */
+.sidebar {
+  background: #0D1520;
+  padding: 28px 24px;
+  overflow-y: auto;
+  border-right: 1px solid rgba(255,255,255,.06);
+  max-height: calc(100vh - 57px);
+  position: sticky;
+  top: 57px;
+}
+
+.sidebar-section {
+  margin-bottom: 28px;
+}
+.sidebar-section-title {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--gold2);
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+
+/* 업로드 존 */
+.upload-zone {
+  border: 1.5px dashed rgba(168,134,44,.4);
+  border-radius: 6px;
+  padding: 24px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all .2s;
+  background: rgba(168,134,44,.04);
+}
+.upload-zone:hover, .upload-zone.dragover {
+  border-color: var(--gold2);
+  background: rgba(168,134,44,.08);
+}
+.upload-zone.uploaded {
+  border-color: #2E9E5F;
+  background: rgba(46,158,95,.06);
+}
+.upload-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+.upload-text {
+  font-size: 12px;
+  color: rgba(255,255,255,.45);
+  line-height: 1.6;
+}
+.upload-text strong {
+  color: var(--gold2);
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+#resumeInput { display: none; }
+
+/* 입력 필드 */
+.field {
+  margin-bottom: 14px;
+}
+.field label {
+  display: block;
+  font-size: 11px;
+  color: rgba(255,255,255,.4);
+  letter-spacing: .5px;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 4px;
+  padding: 10px 12px;
+  color: white;
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.5;
+  transition: border-color .2s;
+  outline: none;
+}
+.field input::placeholder,
+.field textarea::placeholder {
+  color: rgba(255,255,255,.2);
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--gold2);
+}
+.field select option {
+  background: #1A2840;
+  color: white;
+}
+.field textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* 상담 내용 textarea */
+.consult-textarea {
+  min-height: 140px;
+}
+
+/* 생성 버튼 */
+.btn-generate {
+  width: 100%;
+  background: var(--gold2);
+  color: #0D1520;
+  border: none;
+  border-radius: 4px;
+  padding: 14px;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+  letter-spacing: .5px;
+}
+.btn-generate:hover:not(:disabled) {
+  background: #C4A040;
+  transform: translateY(-1px);
+}
+.btn-generate:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-download {
+  width: 100%;
+  background: transparent;
+  color: var(--gold2);
+  border: 1px solid var(--gold2);
+  border-radius: 4px;
+  padding: 12px;
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+  margin-top: 10px;
+  display: none;
+}
+.btn-download:hover {
+  background: rgba(168,134,44,.1);
+}
+.btn-download.visible { display: block; }
+
+/* 프로그레스 */
+.progress-wrap {
+  display: none;
+  margin-top: 14px;
+}
+.progress-wrap.visible { display: block; }
+.progress-steps {
+  list-style: none;
+}
+.progress-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  font-size: 12px;
+  color: rgba(255,255,255,.35);
+}
+.progress-step:last-child { border-bottom: none; }
+.progress-step.done { color: #2E9E5F; }
+.progress-step.active { color: white; }
+.step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,.2);
+  flex-shrink: 0;
+}
+.progress-step.done .step-dot { background: #2E9E5F; border-color: #2E9E5F; }
+.progress-step.active .step-dot { background: var(--gold2); border-color: var(--gold2); animation: pulse .8s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ── 미리보기 영역 ── */
+.preview-area {
+  background: #1A2030;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px;
+  gap: 20px;
+}
+
+.preview-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: rgba(255,255,255,.2);
+  text-align: center;
+  gap: 12px;
+}
+.preview-placeholder-icon { font-size: 48px; opacity: .3; }
+.preview-placeholder-text { font-size: 13px; line-height: 1.7; }
+
+/* ── 리포트 페이지 (A4 비율) ── */
+.report-page {
+  width: 794px;
+  min-height: 1123px;
+  background: white;
+  box-shadow: 0 4px 40px rgba(0,0,0,.4);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* ── 리포트 내부 스타일 ── */
+.report-page * {
+  font-family: var(--sans);
+  box-sizing: border-box;
+}
+
+/* COVER */
+.rp-cover {
+  background: var(--navy);
+  width: 100%;
+  min-height: 1123px;
+  padding: 56px 52px 48px;
+  display: flex;
+  flex-direction: column;
+}
+.rp-kicker {
+  font-size: 9px;
+  letter-spacing: 3.5px;
+  color: var(--gold2);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  font-weight: 700;
+}
+.rp-title {
+  font-family: var(--serif);
+  font-size: 32px;
+  color: white;
+  line-height: 1.3;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.rp-sub {
+  font-size: 11px;
+  color: rgba(255,255,255,.38);
+  margin-bottom: 28px;
+  line-height: 1.6;
+}
+.rp-rule { height: 1px; background: rgba(255,255,255,.1); margin-bottom: 26px; }
+
+.rp-meta {
+  display: flex;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 2px;
+  margin-bottom: 26px;
+}
+.rp-cell { flex: 1; padding: 12px 15px; border-right: 1px solid rgba(255,255,255,.08); }
+.rp-cell:last-child { border-right: none; }
+.rp-lbl { font-size: 8px; letter-spacing: 2px; color: rgba(255,255,255,.28); text-transform: uppercase; margin-bottom: 5px; font-weight: 700; }
+.rp-val { font-size: 11px; color: white; line-height: 1.45; font-weight: 700; }
+
+.rp-grade-row { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 26px; }
+.rp-grade-box { border: 1px solid rgba(255,255,255,.15); border-radius: 2px; padding: 16px 22px; text-align: center; min-width: 100px; }
+.rp-grade-n { font-family: var(--serif); font-size: 36px; color: white; line-height: 1; font-weight: 700; }
+.rp-grade-lbl { font-size: 9px; color: var(--gold2); margin-top: 5px; letter-spacing: 1px; font-weight: 700; }
+.rp-grade-desc { font-size: 10.5px; color: rgba(255,255,255,.48); line-height: 1.9; padding-top: 4px; flex: 1; }
+
+.rp-notice {
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08);
+  border-left: 2px solid var(--gold2);
+  border-radius: 0 2px 2px 0;
+  padding: 12px 16px;
+  margin-bottom: 22px;
+}
+.rp-notice-lbl { font-size: 8px; letter-spacing: 2px; color: var(--gold2); text-transform: uppercase; font-weight: 700; margin-bottom: 5px; }
+.rp-notice-txt { font-size: 10px; color: rgba(255,255,255,.5); line-height: 1.75; }
+
+.rp-kpis { display: flex; gap: 10px; margin-bottom: 22px; }
+.rp-kpi { flex: 1; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); border-radius: 2px; padding: 13px 14px; }
+.rp-kpi-lbl { font-size: 8px; letter-spacing: 1.5px; color: rgba(255,255,255,.35); text-transform: uppercase; font-weight: 700; margin-bottom: 5px; }
+.rp-kpi-val { font-family: var(--serif); font-size: 18px; color: white; font-weight: 700; line-height: 1; margin-bottom: 3px; }
+.rp-kpi-sub { font-size: 9px; color: rgba(255,255,255,.35); line-height: 1.5; }
+
+.rp-toc { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); border-radius: 2px; padding: 14px 16px; margin-bottom: 20px; }
+.rp-toc-lbl { font-size: 8px; letter-spacing: 2px; color: rgba(255,255,255,.28); text-transform: uppercase; font-weight: 700; margin-bottom: 10px; }
+.rp-toc-row { display: flex; align-items: baseline; gap: 8px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+.rp-toc-row:last-child { border-bottom: none; }
+.rp-toc-n { font-size: 9px; color: var(--gold2); min-width: 22px; font-weight: 700; }
+.rp-toc-t { font-size: 10px; color: rgba(255,255,255,.5); flex: 1; }
+.rp-toc-p { font-size: 9px; color: rgba(255,255,255,.22); }
+
+.rp-footer { margin-top: auto; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.07); display: flex; align-items: center; justify-content: space-between; }
+.rp-footer-l { font-size: 9px; color: rgba(255,255,255,.18); line-height: 1.7; }
+.rp-footer-r { font-family: var(--serif); font-size: 15px; font-weight: 700; color: white; letter-spacing: 3px; }
+
+/* BODY PAGES */
+.rp-pg {
+  padding: 38px 50px;
+  display: flex;
+  flex-direction: column;
+  min-height: 1123px;
+}
+.rp-pg-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule);
+}
+.rp-pg-logo { font-family: var(--serif); font-size: 11px; font-weight: 700; color: var(--navy); letter-spacing: 2px; }
+.rp-pg-meta { font-size: 9px; color: var(--ink4); }
+.rp-pg-ft { padding-top: 10px; border-top: 1px solid var(--rule); display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
+.rp-ft-d { font-size: 9px; color: var(--ink4); }
+.rp-ft-p { font-size: 9px; color: var(--ink4); }
+
+.rp-sec { margin-bottom: 22px; }
+.rp-sh { display: flex; align-items: baseline; gap: 10px; margin-bottom: 13px; padding-bottom: 9px; border-bottom: 1.5px solid var(--navy); }
+.rp-sn { font-size: 8px; letter-spacing: 2.5px; color: var(--gold); font-weight: 700; text-transform: uppercase; min-width: 22px; }
+.rp-st { font-family: var(--serif); font-size: 14px; font-weight: 700; color: var(--ink); }
+.rp-se { font-size: 9px; color: var(--ink4); letter-spacing: 1px; text-transform: uppercase; margin-left: auto; }
+
+/* verdict */
+.rp-verdict { display: flex; gap: 12px; margin-bottom: 14px; }
+.rp-verdict-main { flex: 2; background: var(--navy); border-radius: 2px; padding: 16px 18px; border-left: 3px solid var(--gold2); }
+.rp-verdict-eye { font-size: 8px; letter-spacing: 2px; color: var(--gold2); text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
+.rp-verdict-title { font-family: var(--serif); font-size: 15px; color: white; font-weight: 700; line-height: 1.3; margin-bottom: 6px; }
+.rp-verdict-body { font-size: 9.5px; color: rgba(255,255,255,.58); line-height: 1.8; }
+.rp-verdict-kpis { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.rp-vk { flex: 1; border: 1px solid var(--rule); border-radius: 2px; padding: 10px 12px; background: var(--bg); }
+.rp-vk-lbl { font-size: 7.5px; letter-spacing: 1.5px; color: var(--ink4); text-transform: uppercase; font-weight: 700; margin-bottom: 3px; }
+.rp-vk-val { font-family: var(--serif); font-size: 16px; color: var(--navy); font-weight: 700; line-height: 1.1; }
+.rp-vk-sub { font-size: 8.5px; color: var(--ink4); margin-top: 2px; line-height: 1.4; }
+
+/* sw grid */
+.rp-sw { display: flex; gap: 12px; }
+.rp-sw-col { flex: 1; border: 1px solid var(--rule); border-radius: 2px; overflow: hidden; }
+.rp-sw-head { background: var(--navy); padding: 8px 12px; font-size: 8.5px; letter-spacing: 1.5px; color: rgba(255,255,255,.45); text-transform: uppercase; font-weight: 700; }
+.rp-sw-item { display: flex; gap: 8px; padding: 8px 11px; border-bottom: 1px solid var(--rule); align-items: flex-start; }
+.rp-sw-item:last-child { border-bottom: none; }
+.rp-sw-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.rp-sw-dot.s { background: var(--green); }
+.rp-sw-dot.w { background: var(--red); }
+.rp-sw-title { font-size: 9.5px; font-weight: 700; color: var(--ink); display: block; margin-bottom: 1px; }
+.rp-sw-desc { font-size: 8px; color: var(--ink4); line-height: 1.6; }
+
+/* sal bars */
+.rp-sal-wrap { background: var(--navy); border-radius: 2px; padding: 14px 18px; margin-bottom: 12px; }
+.rp-sal-lbl { font-size: 8px; letter-spacing: 2px; color: var(--gold2); text-transform: uppercase; font-weight: 700; margin-bottom: 10px; }
+.rp-sal-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.rp-sal-row:last-of-type { margin-bottom: 0; }
+.rp-sal-name { font-size: 9.5px; color: rgba(255,255,255,.55); min-width: 130px; }
+.rp-sal-bar { flex: 1; height: 5px; background: rgba(255,255,255,.1); border-radius: 3px; position: relative; }
+.rp-sal-fill { height: 5px; border-radius: 3px; position: absolute; }
+.rp-sal-val { font-size: 9.5px; font-weight: 700; min-width: 90px; text-align: right; }
+.rp-sal-note { font-size: 8px; color: rgba(255,255,255,.3); margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,.08); line-height: 1.65; }
+
+/* fit table */
+.rp-fit-table { width: 100%; border-collapse: collapse; margin-bottom: 0; }
+.rp-fit-table th { background: var(--navy); color: rgba(255,255,255,.45); font-size: 8.5px; letter-spacing: 1px; text-transform: uppercase; padding: 8px 11px; text-align: left; font-weight: 700; }
+.rp-fit-table td { padding: 8px 11px; font-size: 9.5px; color: var(--ink2); border-bottom: 1px solid var(--rule); vertical-align: middle; }
+.rp-fit-table tr:last-child td { border-bottom: none; }
+.rp-rk { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; font-size: 9px; font-weight: 700; background: var(--navy); color: white; }
+.rp-rk.top { background: var(--gold2); }
+.rp-fit-desc { font-size: 8px; color: var(--ink4); margin-top: 2px; line-height: 1.5; }
+
+/* timing */
+.rp-timing-flag { background: var(--navy); border-left: 4px solid var(--gold2); border-radius: 0 2px 2px 0; padding: 14px 18px; margin-bottom: 14px; }
+.rp-timing-eye { font-size: 8px; letter-spacing: 2px; color: var(--gold2); text-transform: uppercase; font-weight: 700; margin-bottom: 5px; }
+.rp-timing-title { font-family: var(--serif); font-size: 14px; color: white; font-weight: 700; margin-bottom: 4px; }
+.rp-timing-body { font-size: 9.5px; color: rgba(255,255,255,.55); line-height: 1.85; }
+
+/* strat cols */
+.rp-strat-cols { display: flex; gap: 14px; }
+.rp-strat-col { flex: 1; }
+.rp-strat-col-hd { font-size: 8.5px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: var(--ink4); margin-bottom: 9px; padding-bottom: 6px; border-bottom: 1px solid var(--rule); }
+.rp-si { display: flex; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--rule); align-items: flex-start; }
+.rp-si:last-child { border-bottom: none; }
+.rp-si-tag { font-size: 7.5px; font-weight: 700; padding: 2px 5px; border-radius: 2px; text-transform: uppercase; display: inline-block; flex-shrink: 0; white-space: nowrap; }
+.rp-si-tag.do { background: #ECFDF5; color: var(--green); }
+.rp-si-tag.focus { background: #EDF2FF; color: #1A3A8A; }
+.rp-si-tag.warn { background: #FEF2F2; color: var(--red); }
+.rp-si-title { font-size: 9.5px; font-weight: 700; color: var(--ink); display: block; margin-bottom: 2px; }
+.rp-si-body { font-size: 8.5px; color: var(--ink3); line-height: 1.7; }
+
+/* hh comment */
+.rp-hh-intro { background: var(--bg); border-radius: 2px; padding: 12px 15px; margin-bottom: 12px; }
+.rp-hh-intro p { font-size: 9.5px; color: var(--ink3); line-height: 1.85; }
+.rp-hh-points { border: 1px solid var(--rule); border-radius: 2px; overflow: hidden; margin-bottom: 11px; }
+.rp-hh-point { display: flex; border-bottom: 1px solid var(--rule); }
+.rp-hh-point:last-child { border-bottom: none; }
+.rp-hh-pt-num { background: var(--navy); color: var(--gold2); font-size: 9px; font-weight: 700; padding: 10px 12px; display: flex; align-items: center; min-width: 44px; justify-content: center; flex-shrink: 0; letter-spacing: 1px; }
+.rp-hh-pt-body { padding: 9px 13px; flex: 1; }
+.rp-hh-pt-title { font-size: 10px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
+.rp-hh-pt-text { font-size: 8px; color: var(--ink3); line-height: 1.75; }
+.rp-hh-final { background: var(--navy); border-radius: 2px; padding: 12px 16px; margin-bottom: 11px; }
+.rp-hh-final-lbl { font-size: 8px; letter-spacing: 2px; color: var(--gold2); text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
+.rp-hh-final-text { font-size: 9.5px; color: rgba(255,255,255,.75); line-height: 1.9; }
+
+/* consult page */
+.rp-consult-hd { background: var(--bg); border-radius: 2px; padding: 11px 15px; margin-bottom: 13px; }
+.rp-consult-hd p { font-size: 9.5px; color: var(--ink4); line-height: 1.75; }
+.rp-consult-block { border: 1px solid var(--rule); border-radius: 2px; overflow: hidden; margin-bottom: 12px; }
+.rp-consult-block-hd { background: var(--bg); padding: 8px 13px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--rule); }
+.rp-consult-block-lbl { font-size: 8.5px; letter-spacing: 1.5px; color: var(--ink4); text-transform: uppercase; font-weight: 700; }
+.rp-consult-body { padding: 12px 14px; }
+.rp-consult-row { display: flex; gap: 10px; margin-bottom: 9px; align-items: flex-start; }
+.rp-consult-row:last-child { margin-bottom: 0; }
+.rp-consult-lbl { font-size: 8.5px; font-weight: 700; color: var(--ink4); min-width: 60px; flex-shrink: 0; padding-top: 1px; }
+.rp-consult-val { font-size: 9.5px; color: var(--ink2); line-height: 1.75; flex: 1; }
+.rp-consult-rule { height: 1px; background: var(--rule); margin: 8px 0; }
+.rp-next { background: var(--navy); border-radius: 2px; padding: 13px 16px; }
+.rp-next-lbl { font-size: 8px; letter-spacing: 2px; color: var(--gold2); text-transform: uppercase; font-weight: 700; margin-bottom: 8px; }
+.rp-next-row { display: flex; gap: 8px; margin-bottom: 6px; align-items: flex-start; }
+.rp-next-row:last-child { margin-bottom: 0; }
+.rp-next-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--gold2); flex-shrink: 0; margin-top: 6px; }
+.rp-next-text { font-size: 9px; color: rgba(255,255,255,.6); line-height: 1.7; }
+
+/* 에러 메시지 */
+.error-msg {
+  background: rgba(160,32,24,.15);
+  border: 1px solid rgba(160,32,24,.3);
+  border-radius: 4px;
+  padding: 10px 13px;
+  font-size: 12px;
+  color: #FF8A82;
+  margin-top: 10px;
+  display: none;
+  line-height: 1.6;
+}
+.error-msg.visible { display: block; }
+
+/* 추출된 정보 미리보기 */
+.extracted-info {
+  background: rgba(46,158,95,.08);
+  border: 1px solid rgba(46,158,95,.25);
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 12px;
+  display: none;
+}
+.extracted-info.visible { display: block; }
+.extracted-info-title {
+  font-size: 10px;
+  color: #2E9E5F;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.extracted-field {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 5px;
+  font-size: 11px;
+}
+.extracted-field-lbl { color: rgba(255,255,255,.35); min-width: 70px; flex-shrink: 0; }
+.extracted-field-val { color: rgba(255,255,255,.75); }
+
+@media print {
+  .app-header, .sidebar { display: none; }
+  .preview-area { background: white; padding: 0; }
+  .report-page { box-shadow: none; }
+}
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth.js/1.6.0/mammoth.browser.min.js"></script>
+
+</head>
+<body>
+
+<header class="app-header">
+  <div>
+    <div class="app-logo">HEDING</div>
+  </div>
+  <div class="app-sub">Career Diagnosis Report Generator</div>
+</header>
+
+<div class="app-body">
+
+  <!-- ── 사이드바 ── -->
+  <aside class="sidebar">
+
+    <!-- 이력서 업로드 -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">① 이력서 업로드</div>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('resumeInput').click()">
+        <div class="upload-icon">📄</div>
+        <div class="upload-text">
+          <strong>이력서 파일을 올려주세요</strong>
+          클릭하거나 파일을 드래그하세요<br>
+          <span style="font-size:10px;color:rgba(255,255,255,.2)">PDF 또는 Word(.docx) · 용량 제한 없음</span>
+        </div>
+      </div>
+      <input type="file" id="resumeInput" accept=".pdf,.docx,.doc" onchange="handleResumeUpload(event)">
+
+      <div class="extracted-info" id="extractedInfo">
+        <div class="extracted-info-title">✓ 추출된 정보</div>
+        <div id="extractedFields"></div>
+      </div>
+    </div>
+
+    <!-- 후보자 기본 정보 (자동 채워짐 + 수동 수정 가능) -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">② 후보자 정보</div>
+      <div class="field">
+        <label>이름</label>
+        <input type="text" id="candidateName" placeholder="이시형">
+      </div>
+      <div class="field">
+        <label>현 소속</label>
+        <input type="text" id="currentCompany" placeholder="삼일회계법인 (PwC Korea)">
+      </div>
+      <div class="field">
+        <label>직급</label>
+        <input type="text" id="currentTitle" placeholder="Senior Manager">
+      </div>
+      <div class="field">
+        <label>총 경력</label>
+        <input type="text" id="careerYears" placeholder="8년 10개월">
+      </div>
+      <div class="field">
+        <label>현재 연봉</label>
+        <input type="text" id="currentSalary" placeholder="1.1억 (기본급 기준)">
+      </div>
+      <div class="field">
+        <label>주요 자격증</label>
+        <input type="text" id="certifications" placeholder="KICPA, CISA">
+      </div>
+    </div>
+
+    <!-- 사전 설문 내용 -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">③ 사전 설문 내용</div>
+      <div class="field">
+        <label>설문 응답 붙여넣기</label>
+        <textarea class="consult-textarea" id="surveyContent" placeholder="신청자가 작성한 사전설문 내용을 그대로 복사해서 붙여넣으세요.
+예) 이직 사유, 희망 업종, 처우 관련 답변, 어려운 점 등..."></textarea>
+      </div>
+    </div>
+
+    <!-- 이직 목표 -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">④ 이직 목표</div>
+      <div class="field">
+        <label>희망 직무</label>
+        <input type="text" id="targetRole" placeholder="재무기획 · CFO 오피스">
+      </div>
+      <div class="field">
+        <label>타깃 기업 유형</label>
+        <select id="targetCompanyType">
+          <option value="">선택하세요</option>
+          <option value="startup">스타트업 (스케일업 단계) 우선</option>
+          <option value="large">대기업 금융사 우선</option>
+          <option value="foreign">외국계 금융기관 우선</option>
+          <option value="mixed">스타트업 + 대기업 병행</option>
+          <option value="any">업종 무관</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>목표 처우</label>
+        <input type="text" id="targetSalary" placeholder="현재 대비 20~30% 인상">
+      </div>
+      <div class="field">
+        <label>이직 활동 기간</label>
+        <input type="text" id="jobSearchPeriod" placeholder="2026 하반기 ~ 2027 상반기">
+      </div>
+      <div class="field">
+        <label>필수 조건</label>
+        <input type="text" id="mustHave" placeholder="유연근무, 수평적 문화">
+      </div>
+    </div>
+
+    <!-- 상담 내용 -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">⑤ 상담 내용 입력</div>
+      <div class="field">
+        <label>상담 핵심 내용</label>
+        <textarea class="consult-textarea" id="consultContent" placeholder="상담에서 나온 주요 내용을 자유롭게 입력하세요.
+예) 스타트업 관심 있음, 이력서 금융 키워드 과다, 면접 경험 부족, 대표이사 비전 확인 후 결정 희망..."></textarea>
+      </div>
+      <div class="field">
+        <label>후속 액션 (쉼표로 구분)</label>
+        <textarea id="nextActions" style="min-height:70px" placeholder="이력서 재구성 지원,스타트업 포지션 서칭,대기업 채용 모니터링"></textarea>
+      </div>
+      <div class="field">
+        <label>2차 상담 일정</label>
+        <input type="text" id="nextMeeting" placeholder="2026.07.">
+      </div>
+    </div>
+
+    <!-- 담당 컨설턴트 -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">⑥ 담당 컨설턴트</div>
+      <div class="field">
+        <label>이름 (한글)</label>
+        <input type="text" id="consultantName" placeholder="오시나" value="오시나">
+      </div>
+      <div class="field">
+        <label>이름 (영문)</label>
+        <input type="text" id="consultantNameEn" placeholder="Shina OH" value="Shina OH">
+      </div>
+      <div class="field">
+        <label>직급</label>
+        <input type="text" id="consultantTitle" placeholder="부대표 · VP" value="부대표 · VP">
+      </div>
+      <div class="field">
+        <label>경력 소개</label>
+        <input type="text" id="consultantBio" placeholder="16년 경력 · Executive Search 전문가" value="16년 경력 · Executive Search 전문가">
+      </div>
+    </div>
+
+    <!-- 에러 -->
+    <div class="error-msg" id="errorMsg"></div>
+
+    <!-- 생성 버튼 -->
+    <button class="btn-generate" id="generateBtn" onclick="generateReport()">
+      리포트 생성하기
+    </button>
+
+    <!-- 진행 상황 -->
+    <div class="progress-wrap" id="progressWrap">
+      <ul class="progress-steps">
+        <li class="progress-step" id="step1"><div class="step-dot"></div>이력서 분석 중</li>
+        <li class="progress-step" id="step2"><div class="step-dot"></div>시장 데이터 매핑</li>
+        <li class="progress-step" id="step3"><div class="step-dot"></div>커리어 포지셔닝 진단</li>
+        <li class="progress-step" id="step4"><div class="step-dot"></div>헤드헌터 코멘트 작성</li>
+        <li class="progress-step" id="step5"><div class="step-dot"></div>리포트 완성</li>
+      </ul>
+    </div>
+
+    <button class="btn-download" id="downloadBtn" onclick="downloadReport()">
+      ⬇ PDF로 저장
+    </button>
+
+  </aside>
+
+  <!-- ── 미리보기 ── -->
+  <main class="preview-area" id="previewArea">
+    <div class="preview-placeholder" id="previewPlaceholder">
+      <div class="preview-placeholder-icon">📋</div>
+      <div class="preview-placeholder-text">
+        이력서를 업로드하고 정보를 입력한 후<br>
+        <strong style="color:var(--gold2)">리포트 생성하기</strong>를 클릭하세요
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<script>
+// ── 전역 상태 ──
+let resumeText = '';
+let reportData = {};
+let isGenerating = false;
+
+// ── pdf.js worker 설정 ──
+if (window['pdfjsLib']) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// ── 클라이언트에서 직접 텍스트 추출 (용량 제한 없음) ──
+async function extractPdfText(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let text = '';
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    text += content.items.map(item => item.str).join(' ') + '\n';
+  }
+  return text;
+}
+
+async function extractDocxText(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  return result.value;
+}
+
+async function extractFileText(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (ext === 'pdf') return extractPdfText(file);
+  if (ext === 'docx' || ext === 'doc') return extractDocxText(file);
+  throw new Error('지원하지 않는 파일 형식입니다 (.pdf 또는 .docx만 가능)');
+}
+
+// ── 이력서 업로드 ──
+async function handleResumeUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const zone = document.getElementById('uploadZone');
+  zone.innerHTML = `<div class="upload-icon">⏳</div><div class="upload-text"><strong>읽는 중...</strong>${file.name}<br><span style="font-size:10px;color:rgba(255,255,255,.3)">파일 용량에 따라 시간이 걸릴 수 있습니다</span></div>`;
+
+  try {
+    // 1. 브라우저에서 직접 텍스트 추출 (서버로 파일 전송 안 함 → 용량 제한 없음)
+    const extractedText = await extractFileText(file);
+    if (!extractedText || extractedText.trim().length < 20) {
+      throw new Error('이력서에서 텍스트를 읽지 못했습니다. 스캔본 이미지 PDF일 경우 텍스트 추출이 어려울 수 있습니다.');
+    }
+    resumeText = extractedText;
+
+    // 2. 추출된 텍스트(가벼움)만 서버로 보내 핵심 정보 파싱
+    const res = await fetch('/api/parse-resume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resumeText: extractedText, filename: file.name })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    // 3. 자동 필드 채우기 — 업로드된 이력서 기준으로 항상 덮어씀
+    const e = data.extracted || {};
+    document.getElementById('candidateName').value = e.name || '';
+    document.getElementById('currentCompany').value = e.company || '';
+    document.getElementById('currentTitle').value = e.title || '';
+    document.getElementById('careerYears').value = e.career || '';
+    document.getElementById('currentSalary').value = e.salary || '';
+    document.getElementById('certifications').value = e.certifications || '';
+
+    // 추출 정보 표시
+    const fieldsHtml = Object.entries(e)
+      .filter(([k, v]) => v)
+      .map(([k, v]) => `<div class="extracted-field"><span class="extracted-field-lbl">${getLbl(k)}</span><span class="extracted-field-val">${v}</span></div>`)
+      .join('');
+    document.getElementById('extractedFields').innerHTML = fieldsHtml || '<div style="font-size:11px;color:rgba(255,255,255,.3)">자동 추출된 항목이 없습니다. 좌측 입력란에 직접 입력해주세요.</div>';
+    document.getElementById('extractedInfo').classList.add('visible');
+
+    zone.classList.add('uploaded');
+    zone.innerHTML = `<div class="upload-icon">✅</div><div class="upload-text"><strong style="color:#2E9E5F">업로드 완료</strong>${file.name}<br><span style="font-size:10px;color:rgba(255,255,255,.3)">${(resumeText.length/1000).toFixed(1)}k자 추출됨</span></div>`;
+
+  } catch (err) {
+    zone.classList.remove('uploaded');
+    zone.innerHTML = `<div class="upload-icon">❌</div><div class="upload-text"><strong style="color:var(--red)">오류 발생</strong>${err.message}<br><span style="font-size:10px;color:rgba(255,255,255,.25)">다시 클릭해서 재시도하세요</span></div>`;
+  }
+}
+
+function getLbl(key) {
+  const map = { name:'이름', company:'소속', title:'직급', career:'경력', salary:'연봉', certifications:'자격증', education:'학력' };
+  return map[key] || key;
+}
+
+// 드래그앤드롭
+const uploadZone = document.getElementById('uploadZone');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  const validExt = ['pdf', 'docx', 'doc'];
+  const ext = file ? file.name.split('.').pop().toLowerCase() : '';
+  if (file && validExt.includes(ext)) {
+    document.getElementById('resumeInput').files = e.dataTransfer.files;
+    handleResumeUpload({ target: { files: e.dataTransfer.files } });
+  } else {
+    showError('PDF 또는 Word(.docx) 파일만 업로드할 수 있습니다.');
+  }
+});
+
+// ── 스텝 업데이트 ──
+function setStep(n) {
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById(`step${i}`);
+    el.className = 'progress-step' + (i < n ? ' done' : i === n ? ' active' : '');
+  }
+}
+
+// ── 리포트 생성 ──
+async function generateReport() {
+  if (isGenerating) return;
+
+  const name = document.getElementById('candidateName').value.trim();
+  if (!name) { showError('후보자 이름을 입력해주세요.'); return; }
+
+  hideError();
+  isGenerating = true;
+
+  document.getElementById('generateBtn').disabled = true;
+  document.getElementById('progressWrap').classList.add('visible');
+  document.getElementById('downloadBtn').classList.remove('visible');
+  document.getElementById('previewPlaceholder').style.display = 'none';
+
+  // 기존 페이지 제거
+  document.querySelectorAll('.report-page').forEach(el => el.remove());
+
+  const inputs = collectInputs();
+
+  try {
+    setStep(1);
+    await delay(300);
+    setStep(2);
+
+    const res = await fetch('/api/generate-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resumeText, inputs })
+    });
+
+    setStep(3);
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    setStep(4);
+    reportData = data;
+    await delay(300);
+
+    setStep(5);
+    await delay(200);
+
+    renderReport(data);
+    document.getElementById('downloadBtn').classList.add('visible');
+
+  } catch (err) {
+    showError('리포트 생성 중 오류가 발생했습니다: ' + err.message);
+    document.getElementById('previewPlaceholder').style.display = 'flex';
+  } finally {
+    isGenerating = false;
+    document.getElementById('generateBtn').disabled = false;
+    document.getElementById('progressWrap').classList.remove('visible');
+  }
+}
+
+function collectInputs() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const dateStr = `${year}년 ${parseInt(month)}월`;
+  const dateShort = `${year}.${month}`;
+
+  return {
+    candidateName: document.getElementById('candidateName').value.trim(),
+    currentCompany: document.getElementById('currentCompany').value.trim(),
+    currentTitle: document.getElementById('currentTitle').value.trim(),
+    careerYears: document.getElementById('careerYears').value.trim(),
+    currentSalary: document.getElementById('currentSalary').value.trim(),
+    certifications: document.getElementById('certifications').value.trim(),
+    surveyContent: document.getElementById('surveyContent').value.trim(),
+    targetRole: document.getElementById('targetRole').value.trim(),
+    targetCompanyType: document.getElementById('targetCompanyType').value,
+    targetSalary: document.getElementById('targetSalary').value.trim(),
+    jobSearchPeriod: document.getElementById('jobSearchPeriod').value.trim(),
+    mustHave: document.getElementById('mustHave').value.trim(),
+    consultContent: document.getElementById('consultContent').value.trim(),
+    nextActions: document.getElementById('nextActions').value.trim(),
+    nextMeeting: document.getElementById('nextMeeting').value.trim(),
+    consultantName: document.getElementById('consultantName').value.trim(),
+    consultantNameEn: document.getElementById('consultantNameEn').value.trim(),
+    consultantTitle: document.getElementById('consultantTitle').value.trim(),
+    consultantBio: document.getElementById('consultantBio').value.trim(),
+    dateStr,
+    dateShort,
+    year,
+    month
+  };
+}
+
+// ── 리포트 렌더링 ──
+function renderReport(data) {
+  const preview = document.getElementById('previewArea');
+  const i = data.inputs;
+  const a = data.analysis;
+
+  // ── P1: 커버 ──
+  preview.appendChild(buildCover(i, a));
+
+  // ── P2: 핵심 진단 ──
+  preview.appendChild(buildDiagnosis(i, a));
+
+  // ── P3: 포지셔닝 ──
+  preview.appendChild(buildPositioning(i, a));
+
+  // ── P4: 시장 가치 ──
+  preview.appendChild(buildMarketValue(i, a));
+
+  // ── P5: 타이밍·전략 ──
+  preview.appendChild(buildStrategy(i, a));
+
+  // ── P6: 액션 플랜 ──
+  preview.appendChild(buildActionPlan(i, a));
+
+  // ── P7: 헤드헌터 코멘트 ──
+  preview.appendChild(buildHHComment(i, a));
+
+  // ── P8: 상담 기록 ──
+  preview.appendChild(buildConsultRecord(i, a));
+}
+
+function pg(pageNum, totalPages, content) {
+  return `
+    <div class="rp-pg-hd">
+      <div class="rp-pg-logo">HEDING</div>
+      <div class="rp-pg-meta">이직 진단 리포트 · ${content._name} · ${content._date}</div>
+    </div>
+    ${content.body}
+    <div class="rp-pg-ft">
+      <div class="rp-ft-d">HEDING Career Intelligence · Confidential</div>
+      <div class="rp-ft-p">${pageNum} / ${totalPages}</div>
+    </div>`;
+}
+
+function buildCover(i, a) {
+  const div = document.createElement('div');
+  div.className = 'report-page';
+  div.innerHTML = `<div class="rp-cover">
+    <div class="rp-kicker">Career Diagnosis Report · HEDING</div>
+    <div class="rp-title">HEDING 이직 진단 리포트</div>
+    <div class="rp-sub">${i.certifications || 'KICPA'} · ${i.currentCompany} · ${i.currentTitle} · ${i.careerYears} 경력 기반 분석</div>
+    <div class="rp-rule"></div>
+    <div class="rp-meta">
+      <div class="rp-cell"><div class="rp-lbl">분석 대상</div><div class="rp-val">${i.candidateName}</div></div>
+      <div class="rp-cell"><div class="rp-lbl">현 소속</div><div class="rp-val">${i.currentCompany}</div></div>
+      <div class="rp-cell"><div class="rp-lbl">직급 · 경력</div><div class="rp-val">${i.currentTitle}<br>총 ${i.careerYears}</div></div>
+      <div class="rp-cell" style="border-right:none"><div class="rp-lbl">발행일</div><div class="rp-val">${i.dateStr}<br>HEDING</div></div>
+    </div>
+    <div class="rp-grade-row">
+      <div class="rp-grade-box">
+        <div class="rp-grade-n">${a.grade || 'A+'}</div>
+        <div class="rp-grade-lbl">시장 경쟁력</div>
+      </div>
+      <div class="rp-grade-desc">${a.gradeSummary || '우수한 경력 프로파일을 보유하고 있습니다.'}</div>
+    </div>
+    <div class="rp-notice">
+      <div class="rp-notice-lbl">리포트 안내</div>
+      <div class="rp-notice-txt">본 리포트는 제출 이력서와 사전설문 답변 분석, HEDING 헤드헌팅 실무 데이터를 기반으로 작성되었습니다. 연봉 범위는 HEDING이 헤드헌팅 업무를 통해 파악한 시장 데이터이며, 특정 처우를 보장하지 않습니다.</div>
+    </div>
+    <div class="rp-kpis">
+      ${(a.kpis || []).map(k => `<div class="rp-kpi"><div class="rp-kpi-lbl">${k.label}</div><div class="rp-kpi-val">${k.value}</div><div class="rp-kpi-sub">${k.sub}</div></div>`).join('')}
+    </div>
+    <div class="rp-toc">
+      <div class="rp-toc-lbl">목차 · Table of Contents</div>
+      <div class="rp-toc-row"><div class="rp-toc-n">01</div><div class="rp-toc-t">핵심 진단 — 강점·보완점 요약</div><div class="rp-toc-p">p.2</div></div>
+      <div class="rp-toc-row"><div class="rp-toc-n">02</div><div class="rp-toc-t">커리어 포지셔닝 — 이력서 진단 · Fit 분석</div><div class="rp-toc-p">p.3</div></div>
+      <div class="rp-toc-row"><div class="rp-toc-n">03</div><div class="rp-toc-t">시장 가치 평가 — 연봉 구조 · 협상 전략</div><div class="rp-toc-p">p.4</div></div>
+      <div class="rp-toc-row"><div class="rp-toc-n">04</div><div class="rp-toc-t">이직 타이밍 &amp; 전략</div><div class="rp-toc-p">p.5</div></div>
+      <div class="rp-toc-row"><div class="rp-toc-n">05</div><div class="rp-toc-t">30·60·90일 액션 플랜</div><div class="rp-toc-p">p.6</div></div>
+      <div class="rp-toc-row"><div class="rp-toc-n">06</div><div class="rp-toc-t">헤드헌터 코멘트 — ${i.consultantName}</div><div class="rp-toc-p">p.7</div></div>
+      <div class="rp-toc-row"><div class="rp-toc-n">07</div><div class="rp-toc-t">상담 기록 &amp; 후속 계획</div><div class="rp-toc-p">p.8</div></div>
+    </div>
+    <div class="rp-footer">
+      <div class="rp-footer-l">Confidential · For Recipient Only<br>Prepared by HEDING Career Intelligence · ${i.dateShort}</div>
+      <div class="rp-footer-r">HEDING</div>
+    </div>
+  </div>`;
+  return div;
+}
+
+function buildDiagnosis(i, a) {
+  const div = document.createElement('div');
+  div.className = 'report-page';
+  const strengths = (a.strengths || []).map(s => `
+    <div class="rp-sw-item">
+      <div class="rp-sw-dot s"></div>
+      <div><span class="rp-sw-title">${s.title}</span><div class="rp-sw-desc">${s.desc}</div></div>
+    </div>`).join('');
+  const weaknesses = (a.weaknesses || []).map(w => `
+    <div class="rp-sw-item">
+      <div class="rp-sw-dot w"></div>
+      <div><span class="rp-sw-title">${w.title}</span><div class="rp-sw-desc">${w.desc}</div></div>
+    </div>`).join('');
+
+  div.innerHTML = `<div class="rp-pg">
+    <div class="rp-pg-hd"><div class="rp-pg-logo">HEDING</div><div class="rp-pg-meta">이직 진단 리포트 · ${i.candidateName} · ${i.dateShort}</div></div>
+    <div class="rp-sec">
+      <div class="rp-sh"><div class="rp-sn">01</div><div class="rp-st">핵심 진단</div><div class="rp-se">Key Assessment</div></div>
+      <div class="rp-verdict">
+        <div class="rp-verdict-main">
+          <div class="rp-verdict-eye">HEDING 종합 판단</div>
+          <div class="rp-verdict-title">${a.verdictTitle || '지금 움직여야 할 타이밍입니다'}</div>
+          <div class="rp-verdict-body">${a.verdictBody || ''}</div>
+        </div>
+        <div class="rp-verdict-kpis">
+          <div class="rp-vk"><div class="rp-vk-lbl">현재 처우</div><div class="rp-vk-val">${i.currentSalary || '-'}</div><div class="rp-vk-sub">기본급 기준</div></div>
+          <div class="rp-vk"><div class="rp-vk-lbl">저평가 추정</div><div class="rp-vk-val">${a.undervaluation || '-'}</div><div class="rp-vk-sub">구조적 저평가<br>이직으로 회복 가능</div></div>
+          <div class="rp-vk"><div class="rp-vk-lbl">이직 타이밍</div><div class="rp-vk-val">${a.timingLabel || '지금'}</div><div class="rp-vk-sub">${a.timingDesc || ''}</div></div>
+        </div>
+      </div>
+      <div class="rp-sw">
+        <div class="rp-sw-col">
+          <div class="rp-sw-head">강점 — 헤드헌터가 주목하는 것</div>
+          <div>${strengths}</div>
+        </div>
+        <div class="rp-sw-col">
+          <div class="rp-sw-head">보완 — 지금 당장 손봐야 할 것</div>
+          <div>${weaknesses}</div>
+        </div>
+      </div>
+    </div>
+    <div class="rp-pg-ft"><div class="rp-ft-d">HEDING Career Intelligence · Confidential</div><div class="rp-ft-p">2 / 8</div></div>
+  </div>`;
+  return div;
+}
+
+function buildPositioning(i, a) {
+  const div = document.createElement('div');
+  div.className = 'report-page';
+  const fitRows = (a.fitTable || []).map((f, idx) => `
+    <tr>
+      <td><span class="rp-rk ${idx === 0 ? 'top' : ''}">${idx + 1}</span></td>
+      <td><strong>${f.industry}</strong></td>
+      <td>${f.role}</td>
+      <td><strong>${f.point}</strong><div class="rp-fit-desc">${f.desc}</div></td>
+    </tr>`).join('');
+
+  div.innerHTML = `<div class="rp-pg">
+    <div class="rp-pg-hd"><div class="rp-pg-logo">HEDING</div><div class="rp-pg-meta">이직 진단 리포트 · ${i.candidateName} · ${i.dateShort}</div></div>
+    <div class="rp-sec">
+      <div class="rp-sh"><div class="rp-sn">02</div><div class="rp-st">커리어 포지셔닝 분석</div><div class="rp-se">Career Positioning</div></div>
+      <div style="background:var(--navy);border-radius:2px;padding:14px 18px;margin-bottom:12px;">
+        <div style="font-size:8px;letter-spacing:2px;color:var(--gold2);text-transform:uppercase;font-weight:700;margin-bottom:8px;">HEDING 진단 — ${i.candidateName}의 핵심 포지션</div>
+        <div style="font-family:var(--serif);font-size:17px;color:white;font-weight:700;line-height:1.3;margin-bottom:5px;">${a.positioningTitle || '핵심 포지션'}</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.5);line-height:1.75;">${a.positioningDesc || ''}</div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:12px;">
+        <div style="flex:1;border:1px solid var(--rule);border-radius:2px;padding:10px 13px;">
+          <div style="font-size:8px;letter-spacing:1.5px;color:var(--ink4);text-transform:uppercase;font-weight:700;margin-bottom:6px;">본인이 인식하는 정체성</div>
+          <div style="font-size:9.5px;font-weight:700;color:var(--navy);margin-bottom:3px;">${a.selfIdentity || ''}</div>
+          <div style="font-size:8.5px;color:var(--ink3);line-height:1.7;">${a.selfIdentityDesc || ''}</div>
+        </div>
+        <div style="flex:1;border:1px solid var(--rule);border-radius:2px;padding:10px 13px;background:var(--bg);">
+          <div style="font-size:8px;letter-spacing:1.5px;color:var(--ink4);text-transform:uppercase;font-weight:700;margin-bottom:6px;">HEDING이 이력서에서 읽은 실제 역량</div>
+          <div style="font-size:9.5px;font-weight:700;color:var(--navy);margin-bottom:3px;">${a.actualIdentity || ''}</div>
+          <div style="font-size:8.5px;color:var(--ink3);line-height:1.7;">${a.actualIdentityDesc || ''}</div>
+        </div>
+      </div>
+      <table class="rp-fit-table">
+        <thead><tr><th style="width:28px">순위</th><th style="width:90px">업종</th><th>적합 직종</th><th>핵심 근거</th></tr></thead>
+        <tbody>${fitRows}</tbody>
+      </table>
+    </div>
+    <div class="rp-pg-ft"><div class="rp-ft-d">HEDING Career Intelligence · Confidential</div><div class="rp-ft-p">3 / 8</div></div>
+  </div>`;
+  return div;
+}
+
+function buildMarketValue(i, a) {
+  const div = document.createElement('div');
+  div.className = 'report-page';
+  const salRows = (a.salaryBands || []).map(b => `
+    <div class="rp-sal-row">
+      <div class="rp-sal-name" style="${b.highlight ? 'color:var(--gold2);font-weight:700;' : ''}">${b.label}${b.highlight ? ' ◀ 현재' : ''}</div>
+      <div class="rp-sal-bar"><div class="rp-sal-fill" style="left:${b.left}%;width:${b.width}%;background:${b.color || 'rgba(255,255,255,.25)'};"></div></div>
+      <div class="rp-sal-val" style="${b.highlight ? 'color:var(--gold2);' : 'color:rgba(255,255,255,.6);'}">${b.range}</div>
+    </div>`).join('');
+
+  const negoRows = (a.negotiation || []).map(n => `
+    <tr>
+      <td><strong>${n.position}</strong><div class="rp-fit-desc">${n.company}</div></td>
+      <td><span style="background:#EDF2FF;color:#1A3A8A;font-size:7.5px;font-weight:700;padding:2px 6px;border-radius:2px;">${n.level}</span></td>
+      <td><span style="font-family:var(--serif);font-size:11px;font-weight:700;color:var(--navy);">${n.range}</span></td>
+      <td style="font-size:8px;color:var(--ink4);line-height:1.6;">${n.tip}</td>
+    </tr>`).join('');
+
+  div.innerHTML = `<div class="rp-pg">
+    <div class="rp-pg-hd"><div class="rp-pg-logo">HEDING</div><div class="rp-pg-meta">이직 진단 리포트 · ${i.candidateName} · ${i.dateShort}</div></div>
+    <div class="rp-sec">
+      <div class="rp-sh"><div class="rp-sn">03</div><div class="rp-st">시장 가치 평가</div><div class="rp-se">Market Value · Salary</div></div>
+      <div style="display:flex;gap:11px;margin-bottom:12px;">
+        <div style="flex:2;background:var(--navy);border-radius:2px;padding:16px 18px;border-left:3px solid var(--gold2);">
+          <div style="font-size:8px;letter-spacing:2px;color:var(--gold2);text-transform:uppercase;font-weight:700;margin-bottom:6px;">HEDING 시장 가치 판단</div>
+          <div style="font-family:var(--serif);font-size:14px;color:white;font-weight:700;line-height:1.3;margin-bottom:6px;">${a.marketVerdict || '시장 가치 분석'}</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.55);line-height:1.85;">${a.marketVerdictDesc || ''}</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+          <div class="rp-vk"><div class="rp-vk-lbl">현재 처우</div><div class="rp-vk-val">${i.currentSalary || '-'}</div><div class="rp-vk-sub">기본급 기준</div></div>
+          <div class="rp-vk"><div class="rp-vk-lbl">시장 적정 범위</div><div class="rp-vk-val">${a.marketRange || '-'}</div><div class="rp-vk-sub">HEDING 파악 기준</div></div>
+          <div class="rp-vk"><div class="rp-vk-lbl">협상 목표</div><div class="rp-vk-val">${a.negotiationTarget || '-'}</div><div class="rp-vk-sub">${i.targetSalary || ''}</div></div>
+        </div>
+      </div>
+      <div class="rp-sal-wrap">
+        <div class="rp-sal-lbl">기업 유형별 연봉 범위 — HEDING 파악 데이터</div>
+        ${salRows}
+        <div class="rp-sal-note">※ HEDING 헤드헌팅 업무를 통해 파악한 시장 데이터. 기업 규모·직급·협상력에 따라 실제 조건은 상당한 차이가 있을 수 있습니다.</div>
+      </div>
+      <table class="rp-fit-table">
+        <thead><tr><th>지원 포지션</th><th style="width:80px">레벨</th><th style="width:100px">협상 범위</th><th>핵심 포인트</th></tr></thead>
+        <tbody>${negoRows}</tbody>
+      </table>
+    </div>
+    <div class="rp-pg-ft"><div class="rp-ft-d">HEDING Career Intelligence · Confidential</div><div class="rp-ft-p">4 / 8</div></div>
+  </div>`;
+  return div;
+}
+
+function buildStrategy(i, a) {
+  const div = document.createElement('div');
+  div.className = 'report-page';
+
+  const tl = (a.timeline || []).map((t, idx) => `
+    <div class="tl-item${idx === 0 ? ' now' : ''}" style="${idx===0?'background:var(--navy);':'border:1px solid var(--rule);border-right:none;'}${idx===a.timeline.length-1?'border-right:1px solid var(--rule);':''}padding:10px 12px;flex:1;">
+      <div style="font-size:7.5px;letter-spacing:1px;color:${idx===0?'var(--gold2)':'var(--ink4)'};text-transform:uppercase;font-weight:700;margin-bottom:4px;">${t.period}</div>
+      <div style="font-size:9.5px;font-weight:700;color:${idx===0?'white':'var(--ink)'};margin-bottom:3px;">${t.title}</div>
+      <div style="font-size:8px;color:${idx===0?'rgba(255,255,255,.45)':'var(--ink4)'};line-height:1.6;">${t.desc}</div>
+    </div>`).join('');
+
+  const leftStrats = (a.stratLeft || []).map(s => `
+    <div class="rp-si">
+      <span class="rp-si-tag ${s.type}">${s.tag}</span>
+      <div><span class="rp-si-title">${s.title}</span><div class="rp-si-body">${s.body}</div></div>
+    </div>`).join('');
+
+  const rightStrats = (a.stratRight || []).map(s => `
+    <div class="rp-si">
+      <span class="rp-si-tag ${s.type}">${s.tag}</span>
+      <div><span class="rp-si-title">${s.title}</span><div class="rp-si-body">${s.body}</div></div>
+    </div>`).join('');
+
+  div.innerHTML = `<div class="rp-pg">
+    <div class="rp-pg-hd"><div class="rp-pg-logo">HEDING</div><div class="rp-pg-meta">이직 진단 리포트 · ${i.candidateName} · ${i.dateShort}</div></div>
+    <div class="rp-sec">
+      <div class="rp-sh"><div class="rp-sn">04</div><div class="rp-st">이직 타이밍 &amp; 전략</div><div class="rp-se">Timing &amp; Strategy</div></div>
+      <div class="rp-timing-flag">
+        <div class="rp-timing-eye">HEDING 타이밍 판단</div>
+        <div class="rp-timing-title">${a.timingTitle || '최적 이직 타이밍'}</div>
+        <div class="rp-timing-body">${a.timingBody || ''}</div>
+      </div>
+      <div style="display:flex;margin-bottom:14px;">${tl}</div>
+      <div class="rp-strat-cols">
+        <div class="rp-strat-col">
+          <div class="rp-strat-col-hd">${a.stratLeftTitle || '주요 타깃 전략'}</div>
+          ${leftStrats}
+        </div>
+        <div class="rp-strat-col">
+          <div class="rp-strat-col-hd">${a.stratRightTitle || '보완 전략'}</div>
+          ${rightStrats}
+        </div>
+      </div>
+    </div>
+    <div class="rp-pg-ft"><div class="rp-ft-d">HEDING Career Intelligence · Confidential</div><div class="rp-ft-p">5 / 8</div></div>
+  </div>`;
+  return div;
+}
+
+function buildActionPlan(i, a) {
+  const div = document.createElement('div');
+  div.className = 'report-page';
+
+  const phases = (a.phases || []).map((p, idx) => {
+    const colors = ['#192638', '#1D3050', '#143020'];
+    const dots = ['var(--gold2)', '#4A7AE8', 'var(--green)'];
+    const tasks = (p.tasks || []).map(t => `
+      <div style="display:flex;gap:7px;margin-bottom:7px;align-items:flex-start;">
+        <div style="width:5px;height:5px;border-radius:50%;background:${dots[idx]};flex-shrink:0;margin-top:5px;"></div>
+        <div style="font-size:8.5px;color:var(--ink2);line-height:1.65;"><strong style="font-size:9px;color:var(--ink);display:block;margin-bottom:1px;">${t.title}</strong>${t.desc}</div>
+      </div>`).join('');
+    return `<div style="flex:1;border:1px solid var(--rule);border-right:none;">
+      <div style="background:${colors[idx]};padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.1);">
+        <div style="font-family:var(--serif);font-size:10.5px;color:white;font-weight:700;">${p.title}</div>
+        <div style="font-size:7.5px;color:rgba(255,255,255,.38);margin-top:2px;">${p.period}</div>
+      </div>
+      <div style="padding:10px 12px;">${tasks}</div>
+    </div>`;
+  }).join('');
+
+  const checks = (a.checklistNow || []).map(c => `
+    <div style="display:flex;gap:7px;padding:6px 0;border-bottom:1px solid var(--rule);align-items:flex-start;">
+      <div style="width:13px;height:13px;border:1.5px solid var(--rule);border-radius:2px;flex-shrink:0;margin-top:2px;"></div>
+      <div style="font-size:8.5px;color:var(--ink2);line-height:1.6;"><strong style="font-size:9px;color:var(--ink);display:block;">${c.title}</strong><span style="font-size:7.5px;color:var(--ink4);">${c.sub || ''}</span></div>
+    </div>`).join('');
+
+  const checksLong = (a.checklistLong || []).map(c => `
+    <div style="display:flex;gap:7px;padding:6px 0;border-bottom:1px solid var(--rule);align-items:flex-start;">
+      <div style="width:13px;height:13px;border:1.5px solid var(--rule);border-radius:2px;flex-shrink:0;margin-top:2px;"></div>
+      <div style="font-size:8.5px;color:var(--ink2);line-height:1.6;"><strong style="font-size:9px;color:var(--ink);display:block;">${c.title}</strong><span style="font-size:7.5px;color:var(--ink4);">${c.sub || ''}</span></div>
+    </div>`).join('');
+
+  div.innerHTML = `<div class="rp-pg">
+    <div class="rp-pg-hd"><div class="rp-pg-logo">HEDING</div><div class="rp-pg-meta">이직 진단 리포트 · ${i.candidateName} · ${i.dateShort}</div></div>
+    <div class="rp-sec">
+      <div class="rp-sh"><div class="rp-sn">05</div><div class="rp-st">30·60·90일 액션 플랜</div><div class="rp-se">Action Plan</div></div>
+      <div style="font-size:9.5px;color:var(--ink3);line-height:1.85;margin-bottom:12px;padding:12px 16px;border-left:2px solid var(--gold2);background:var(--bg);border-radius:0 2px 2px 0;">${a.planIntro || '재직 중 병행 가능한 현실적 일정을 기준으로 작성했습니다.'}</div>
+      <div style="display:flex;margin-bottom:12px;">
+        ${phases}
+        <div style="width:1px;border-right:1px solid var(--rule);"></div>
+      </div>
+      <div style="display:flex;gap:12px;">
+        <div style="flex:1;">
+          <div style="font-size:8.5px;letter-spacing:1.5px;font-weight:700;text-transform:uppercase;color:var(--ink4);margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--rule);">지금 당장 할 수 있는 것</div>
+          ${checks}
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:8.5px;letter-spacing:1.5px;font-weight:700;text-transform:uppercase;color:var(--ink4);margin-bottom:7px;padding-bottom:5px;border-bottom:1px solid var(--rule);">장기적으로 하면 좋을 것</div>
+          ${checksLong}
+        </div>
+      </div>
+    </div>
+    <div class="rp-pg-ft"><div class="rp-ft-d">HEDING Career Intelligence · Confidential</div><div class="rp-ft-p">6 / 8</div></div>
+  </div>`;
+  return div;
+}
+
+function buildHHComment(i, a) {
+  const div = document.createElement('div');
+  div.className = 'report-page';
+
+  const points = (a.hhPoints || []).map(p => `
+    <div class="rp-hh-point">
+      <div class="rp-hh-pt-num">${p.label}</div>
+      <div class="rp-hh-pt-body">
+        <div class="rp-hh-pt-title">${p.title}</div>
+        <div class="rp-hh-pt-text">${p.text}</div>
+      </div>
+    </div>`).join('');
+
+  div.innerHTML = `<div class="rp-pg">
+    <div class="rp-pg-hd"><div class="rp-pg-logo">HEDING</div><div class="rp-pg-meta">이직 진단 리포트 · ${i.candidateName} · ${i.dateShort}</div></div>
+    <div class="rp-sec">
+      <div class="rp-sh"><div class="rp-sn">06</div><div class="rp-st">헤드헌터 코멘트</div><div class="rp-se">Headhunter's Note</div></div>
+      <div class="rp-hh-intro"><p>${a.hhIntro || ''}</p></div>
+      <div class="rp-hh-points">${points}</div>
+      <div class="rp-hh-final">
+        <div class="rp-hh-final-lbl">마지막으로</div>
+        <div class="rp-hh-final-text">${a.hhFinal || ''}</div>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:flex-end;gap:10px;padding-top:10px;border-top:1px solid var(--rule);">
+        <div style="text-align:right;">
+          <div style="font-family:var(--serif);font-size:12px;font-weight:700;color:var(--navy);margin-bottom:2px;">${i.consultantNameEn} (${i.consultantName})</div>
+          <div style="font-size:8px;color:var(--ink4);line-height:1.4;">${i.consultantTitle} · ${i.consultantBio}</div>
+          <div style="font-size:9px;font-weight:700;color:var(--navy);margin-top:2px;letter-spacing:1px;">㈜더라이징스타헤딩 · HEDING</div>
+        </div>
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span style="font-family:var(--serif);font-size:8px;font-weight:700;color:white;letter-spacing:1px;">HEDING</span>
+        </div>
+      </div>
+    </div>
+    <div class="rp-pg-ft"><div class="rp-ft-d">HEDING Career Intelligence · Confidential</div><div class="rp-ft-p">7 / 8</div></div>
+  </div>`;
+  return div;
+}
+
+function buildConsultRecord(i, a) {
+  const div = document.createElement('div');
+  div.className = 'report-page';
+
+  const actions = (i.nextActions || '').split(',').filter(s => s.trim()).map(act => `
+    <div class="rp-next-row">
+      <div class="rp-next-dot"></div>
+      <div class="rp-next-text">${act.trim()}</div>
+    </div>`).join('');
+
+  const consultPoints = (a.consultSummary || []).map(c => `
+    <div style="display:flex;gap:9px;padding:8px 0;border-bottom:1px solid var(--rule);align-items:flex-start;">
+      <div style="font-size:8px;font-weight:700;color:var(--gold2);min-width:16px;flex-shrink:0;padding-top:2px;">${c.num}</div>
+      <div>
+        <div style="font-size:9.5px;font-weight:700;color:var(--ink);margin-bottom:2px;">${c.title}</div>
+        <div style="font-size:8px;color:var(--ink4);line-height:1.65;">${c.desc}</div>
+      </div>
+    </div>`).join('');
+
+  div.innerHTML = `<div class="rp-pg">
+    <div class="rp-pg-hd"><div class="rp-pg-logo">HEDING</div><div class="rp-pg-meta">이직 진단 리포트 · ${i.candidateName} · ${i.dateShort}</div></div>
+    <div class="rp-sec">
+      <div class="rp-sh"><div class="rp-sn">07</div><div class="rp-st">상담 기록 &amp; 후속 계획</div><div class="rp-se">Consultation Record</div></div>
+      <div class="rp-consult-hd"><p>${i.dateStr} 유선 상담 기록입니다. 이직 완료까지 진행 상황을 추적합니다.</p></div>
+      <div class="rp-consult-block">
+        <div class="rp-consult-block-hd"><div class="rp-consult-block-lbl">1차 상담 기록</div><div style="font-size:8.5px;color:var(--ink4);">일시: ${i.dateShort} · 유선</div></div>
+        <div class="rp-consult-body">
+          <div class="rp-consult-row"><div class="rp-consult-lbl">이직 목표</div><div class="rp-consult-val">${i.targetRole || '-'}</div></div>
+          <div class="rp-consult-rule"></div>
+          <div class="rp-consult-row"><div class="rp-consult-lbl">타깃 기업</div><div class="rp-consult-val">${getTargetTypeLabel(i.targetCompanyType)}</div></div>
+          <div class="rp-consult-rule"></div>
+          <div class="rp-consult-row"><div class="rp-consult-lbl">목표 처우</div><div class="rp-consult-val">${i.targetSalary || '-'}</div></div>
+          <div class="rp-consult-rule"></div>
+          <div class="rp-consult-row"><div class="rp-consult-lbl">필수 조건</div><div class="rp-consult-val">${i.mustHave || '-'}</div></div>
+          <div class="rp-consult-rule"></div>
+          <div class="rp-consult-row"><div class="rp-consult-lbl">이직 기간</div><div class="rp-consult-val">${i.jobSearchPeriod || '-'}</div></div>
+        </div>
+      </div>
+      ${consultPoints ? `<div style="border:1px solid var(--rule);border-radius:2px;overflow:hidden;margin-bottom:12px;">
+        <div style="background:var(--navy);padding:8px 13px;"><div style="font-size:8.5px;letter-spacing:1.5px;color:rgba(255,255,255,.45);text-transform:uppercase;font-weight:700;">상담 핵심 내용 요약</div></div>
+        <div style="padding:8px 13px;">${consultPoints}</div>
+      </div>` : ''}
+      <div class="rp-next">
+        <div class="rp-next-lbl">후속 액션 — HEDING 확인 사항</div>
+        ${actions}
+        <div class="rp-next-row"><div class="rp-next-dot"></div><div class="rp-next-text">2차 상담 일정: ${i.nextMeeting || '미정'}</div></div>
+      </div>
+    </div>
+    <div style="padding-top:8px;border-top:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between;margin-top:auto;">
+      <div style="font-size:7.5px;color:var(--ink4);">본 리포트는 이력서·설문 분석과 HEDING 실무 데이터 기반의 커리어 진단 참고자료입니다. 특정 채용 결과·연봉을 보장하지 않습니다. © ${i.year} The Rising Star Heding Co., Ltd.</div>
+      <div style="font-size:8px;color:var(--ink4);white-space:nowrap;margin-left:14px;">8 / 8</div>
+    </div>
+  </div>`;
+  return div;
+}
+
+function getTargetTypeLabel(type) {
+  const map = {
+    startup: '스타트업 (시리즈 B~D · IPO 준비) 우선',
+    large: '대기업 금융사 우선',
+    foreign: '외국계 금융기관 우선',
+    mixed: '스타트업 + 대기업 병행',
+    any: '업종 무관 · 성장 단계 기준'
+  };
+  return map[type] || type || '-';
+}
+
+// ── PDF 다운로드 ──
+function downloadReport() {
+  window.print();
+}
+
+// ── 유틸 ──
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.classList.add('visible');
+}
+function hideError() {
+  document.getElementById('errorMsg').classList.remove('visible');
+}
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
