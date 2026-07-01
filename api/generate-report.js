@@ -248,9 +248,7 @@ ${i.consultContent || '상담 내용 없음'}
     }
 
     // inputs 첨부
-    analysis.inputs = inputs;
-
-    return res.status(200).json(analysis);
+return res.status(200).json({ inputs, analysis });
 
   } catch (err) {
     console.error('Generate error:', err);
