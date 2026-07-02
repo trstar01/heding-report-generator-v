@@ -969,6 +969,12 @@ function renderReport(data) {
 
   // ── P8: 상담 기록 ──
   preview.appendChild(buildConsultRecord(i, a));
+
+  // ── 클릭해서 바로 수정 가능하게 ──
+  document.querySelectorAll('.report-page').forEach(page => {
+    page.setAttribute('contenteditable', 'true');
+    page.style.outline = 'none';
+  });
 }
 
 function pg(pageNum, totalPages, content) {
