@@ -252,6 +252,7 @@ ${i.consultContent || '상담 내용 없음'}
 5. 설문/상담 내용이 비어있으면 해당 반영 없이 이력서 기반으로만 작성하고, 없는 내용을 지어내지 않는다.
 5-1. 상담 내용이 이력서·설문·②③④ 입력값(희망 직무·타깃 기업 유형·목표 처우 등)과 서로 다르거나 상충되는 경우, 상담 내용을 우선한다 (상담이 가장 최근에 후보자 본인과 직접 나눈 대화이므로). 이때 침묵 속에 그냥 상담 내용으로 덮어쓰지 말고, verdictBody나 positioningDesc 중 한 곳에서 "상담 과정에서 (초기 입력값)에서 (상담 내용)로 방향이 조정되었다"는 식으로 그 변화 자체를 자연스럽게 짚어준다. 이렇게 하면 헤드헌터가 실제로 상담 내용을 반영해 판단한 것처럼 읽힌다.
 6. 헤드헌터 코멘트(hhPoints, hhFinal)는 실제 헤드헌터가 구두로 말하는 듯한 자연스러운 현장 언어로 작성한다 (AI가 쓴 듯한 상투적 문구 금지).
+6-1. 후보자를 호칭할 때 절대 "OO씨"를 쓰지 않는다 (격식 없는 표현으로 읽혀 무례하게 느껴질 수 있다). 반드시 "${i.candidateName} 님" 형태로 호칭한다.
 7. consultSummary는 상담 내용이 있을 때만 작성하고, 없으면 빈 배열 []로 둔다.
 8. inputs 필드는 그대로 {} 로 남겨두세요 (서버에서 채움).
 9. verdictBody, positioningDesc, fitTable[].desc, hhPoints[].text 중 최소 3곳 이상에서, 이력서에 실제로 등장하는 회사명·프로젝트명·수치·자격증명을 직접 인용해서 근거로 사용한다. "다양한 프로젝트를 통해", "폭넓은 경험을 바탕으로" 같이 구체적 근거 없이 뭉뚱그린 표현은 사용하지 않는다.
@@ -275,48 +276,61 @@ ${i.consultContent || '상담 내용 없음'}
 
 마지막으로 다시 한번: 지금까지 무엇을 검색했든, 무엇을 판단했든 상관없이, 당신이 지금 작성하는 바로 다음 응답은 오직 { 로 시작해서 } 로 끝나는 JSON 객체 하나여야 한다. "검색 결과를 바탕으로", "다음과 같이 정리했습니다" 같은 설명 문장을 앞에 붙이지 마라. 그 즉시 출력을 시작한다면, 첫 글자는 반드시 { 여야 한다.`;
 
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 16000,
-      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 6 }],
-      messages: [{ role: 'user', content: prompt }]
-    });
+    // ── 안전망: 파싱 실패 시 최대 2회까지 자동 재시도 ──
+    const MAX_ATTEMPTS = 2;
+    let response, textBlocks = [], content = '', analysis = null, lastError = null, attemptsUsed = 0;
 
-    // 웹 검색 도구 사용 시 응답에 text 블록이 여러 개 섞여 올 수 있고,
-    // 그중 일부는 JSON이 아닌 설명 텍스트일 수 있으므로,
-    // 뒤에서부터 순회하며 실제로 JSON으로 파싱되는 블록을 찾는다 (방어 로직)
-    const textBlocks = response.content.filter(b => b.type === 'text');
-    let content = textBlocks.length > 0 ? textBlocks[textBlocks.length - 1].text : '';
-    let analysis = null;
-    let lastError = null;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      attemptsUsed = attempt;
 
-    for (let idx = textBlocks.length - 1; idx >= 0; idx--) {
-      const candidate = textBlocks[idx].text;
-      let clean = candidate.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      response = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 16000,
+        tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 6 }],
+        messages: [{ role: 'user', content: prompt }]
+      });
 
-      // 텍스트 앞뒤에 설명 문구가 섞여 있어도, 그 안에 파묻힌 JSON 덩어리만 뽑아서 시도 (2차 방어)
-      const firstBrace = clean.indexOf('{');
-      const lastBrace = clean.lastIndexOf('}');
-      const extracted = (firstBrace !== -1 && lastBrace > firstBrace)
-        ? clean.substring(firstBrace, lastBrace + 1)
-        : clean;
+      // 웹 검색 도구 사용 시 응답에 text 블록이 여러 개 섞여 올 수 있고,
+      // 그중 일부는 JSON이 아닌 설명 텍스트일 수 있으므로,
+      // 뒤에서부터 순회하며 실제로 JSON으로 파싱되는 블록을 찾는다 (방어 로직)
+      textBlocks = response.content.filter(b => b.type === 'text');
+      content = textBlocks.length > 0 ? textBlocks[textBlocks.length - 1].text : '';
+      analysis = null;
 
-      try {
-        analysis = JSON.parse(extracted);
-        content = candidate;
-        break;
-      } catch (e) {
-        lastError = e;
+      for (let idx = textBlocks.length - 1; idx >= 0; idx--) {
+        const candidate = textBlocks[idx].text;
+        let clean = candidate.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+        // 텍스트 앞뒤에 설명 문구가 섞여 있어도, 그 안에 파묻힌 JSON 덩어리만 뽑아서 시도 (2차 방어)
+        const firstBrace = clean.indexOf('{');
+        const lastBrace = clean.lastIndexOf('}');
+        const extracted = (firstBrace !== -1 && lastBrace > firstBrace)
+          ? clean.substring(firstBrace, lastBrace + 1)
+          : clean;
+
+        try {
+          analysis = JSON.parse(extracted);
+          content = candidate;
+          break;
+        } catch (e) {
+          lastError = e;
+        }
       }
+
+      if (analysis) break; // 성공하면 재시도 없이 즉시 종료
+
+      console.error(`리포트 파싱 실패 (${attempt}/${MAX_ATTEMPTS}차 시도)` + (attempt < MAX_ATTEMPTS ? ' — 자동 재시도합니다' : ' — 재시도 소진'));
     }
 
     if (!analysis) {
       return res.status(500).json({
-        error: '리포트 데이터 파싱 실패: ' + (lastError ? lastError.message : '알 수 없는 오류'),
+        error: `리포트 데이터 파싱 실패 (자동 재시도 ${MAX_ATTEMPTS}회 소진): ` + (lastError ? lastError.message : '알 수 없는 오류'),
+
         stopReason: response.stop_reason,
         contentLength: content.length,
         contentEnd: content.substring(content.length - 300),
-        textBlockCount: textBlocks.length
+        textBlockCount: textBlocks.length,
+        attemptsUsed
       });
     }
 
