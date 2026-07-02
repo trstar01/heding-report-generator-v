@@ -271,7 +271,9 @@ ${i.consultContent || '상담 내용 없음'}
        - 재직 기간이 애매하거나(1~3년) 뚜렷한 신호가 부족하면 → "시장 탐색기"
        - 재직 기간이 짧고(1년 미만) 최근 승진·입사 등으로 아직 회사 내 성장 여지가 남아 보이면 → "성장 재평가기"
        - 재직 기간이 매우 짧거나(6개월 미만) 이직을 반복한 이력이 있어 한 곳에 정착이 필요해 보이면 → "관망 권장기"
-   (4) 위 기준은 참고 원칙이며, 이력서·설문·상담 내용에 이와 다른 명확한 근거가 있으면 그걸 우선한다. timingDesc·timingBody에는 반드시 재직 여부·재직 기간 등 실제로 판단에 쓴 근거를 구체적으로 밝힌다 (예: "현재 재직 8개월차로 아직 온보딩 초기 단계").`;
+   (4) 위 기준은 참고 원칙이며, 이력서·설문·상담 내용에 이와 다른 명확한 근거가 있으면 그걸 우선한다. timingDesc·timingBody에는 반드시 재직 여부·재직 기간 등 실제로 판단에 쓴 근거를 구체적으로 밝힌다 (예: "현재 재직 8개월차로 아직 온보딩 초기 단계").
+
+마지막으로 다시 한번: 지금까지 무엇을 검색했든, 무엇을 판단했든 상관없이, 당신이 지금 작성하는 바로 다음 응답은 오직 { 로 시작해서 } 로 끝나는 JSON 객체 하나여야 한다. "검색 결과를 바탕으로", "다음과 같이 정리했습니다" 같은 설명 문장을 앞에 붙이지 마라. 그 즉시 출력을 시작한다면, 첫 글자는 반드시 { 여야 한다.`;
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
@@ -290,9 +292,17 @@ ${i.consultContent || '상담 내용 없음'}
 
     for (let idx = textBlocks.length - 1; idx >= 0; idx--) {
       const candidate = textBlocks[idx].text;
-      const clean = candidate.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      let clean = candidate.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+      // 텍스트 앞뒤에 설명 문구가 섞여 있어도, 그 안에 파묻힌 JSON 덩어리만 뽑아서 시도 (2차 방어)
+      const firstBrace = clean.indexOf('{');
+      const lastBrace = clean.lastIndexOf('}');
+      const extracted = (firstBrace !== -1 && lastBrace > firstBrace)
+        ? clean.substring(firstBrace, lastBrace + 1)
+        : clean;
+
       try {
-        analysis = JSON.parse(clean);
+        analysis = JSON.parse(extracted);
         content = candidate;
         break;
       } catch (e) {
