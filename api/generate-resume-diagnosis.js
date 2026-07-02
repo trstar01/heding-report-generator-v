@@ -73,38 +73,59 @@ ${trimmedResume}
 9. reason은 일반적인 첨삭 조언이 아니라, 실제 채용담당자·헤드헌터가 이력서를 검토하는 방식에 근거해서 써야 한다 (예: "서류 검토자는 문장을 끝까지 읽지 않고 굵은 수치·직함부터 훑기 때문에", "이 직무 채용공고에는 보통 이 키워드가 자동 스크리닝 기준으로 쓰이기 때문에" 등 — 실제 근거가 이력서·직무 맥락에서 나와야 하며, 근거 없이 일반론만 쓰지 않는다).
 10. overallSummary와 topPriorities도 "이력서를 더 다듬으세요" 식이 아니라, 이 이력서를 처음 본 헤드헌터가 실제로 갖는 첫인상과 판단을 담아야 한다.
 11. consultantNote는 이 리포트 전체에서 가장 개인적인 부분이다. 담당 컨설턴트(${i.consultantName || '담당 컨설턴트'})가 이 후보자만 보고 쓴 것처럼, 이력서에서 실제로 발견한 구체적 사실을 최소 1개 이상 직접 언급한다. "이력서를 잘 다듬으시면 좋겠습니다" 같은 어디에나 붙일 수 있는 마무리 문구는 금지한다.
+11-1. 후보자를 호칭할 때 절대 "OO씨"를 쓰지 않는다 (친근함을 의도해도 격식 없는 표현으로 읽혀 무례하게 느껴질 수 있다). 반드시 "OO님"으로 호칭한다. 성이나 이름 없이 그냥 "님"만 쓰는 것도 어색하니, 이름을 아는 경우 "${i.candidateName} 님" 형태로 자연스럽게 쓴다.
 12. inputs 필드는 만들지 않는다 (서버에서 별도 처리).`;
 
-    const response = await client.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 16000,
-      messages: [{ role: 'user', content: prompt }]
-    });
+    // ── 안전망: 파싱 실패 시 최대 2회까지 자동 재시도 ──
+    const MAX_ATTEMPTS = 2;
+    let response, textBlocks = [], content = '', analysis = null, lastError = null, attemptsUsed = 0;
 
-    const textBlocks = response.content.filter(b => b.type === 'text');
-    let content = textBlocks.length > 0 ? textBlocks[textBlocks.length - 1].text : '';
-    let analysis = null;
-    let lastError = null;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      attemptsUsed = attempt;
 
-    for (let idx = textBlocks.length - 1; idx >= 0; idx--) {
-      const candidate = textBlocks[idx].text;
-      const clean = candidate.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      try {
-        analysis = JSON.parse(clean);
-        content = candidate;
-        break;
-      } catch (e) {
-        lastError = e;
+      response = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 16000,
+        messages: [{ role: 'user', content: prompt }]
+      });
+
+      textBlocks = response.content.filter(b => b.type === 'text');
+      content = textBlocks.length > 0 ? textBlocks[textBlocks.length - 1].text : '';
+      analysis = null;
+
+      for (let idx = textBlocks.length - 1; idx >= 0; idx--) {
+        const candidate = textBlocks[idx].text;
+        let clean = candidate.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
+        // 텍스트 앞뒤에 설명 문구가 섞여 있어도, 그 안에 파묻힌 JSON 덩어리만 뽑아서 시도 (2차 방어)
+        const firstBrace = clean.indexOf('{');
+        const lastBrace = clean.lastIndexOf('}');
+        const extracted = (firstBrace !== -1 && lastBrace > firstBrace)
+          ? clean.substring(firstBrace, lastBrace + 1)
+          : clean;
+
+        try {
+          analysis = JSON.parse(extracted);
+          content = candidate;
+          break;
+        } catch (e) {
+          lastError = e;
+        }
       }
+
+      if (analysis) break; // 성공하면 재시도 없이 즉시 종료
+
+      console.error(`이력서 진단 파싱 실패 (${attempt}/${MAX_ATTEMPTS}차 시도)` + (attempt < MAX_ATTEMPTS ? ' — 자동 재시도합니다' : ' — 재시도 소진'));
     }
 
     if (!analysis) {
       return res.status(500).json({
-        error: '리포트 데이터 파싱 실패: ' + (lastError ? lastError.message : '알 수 없는 오류'),
+        error: `리포트 데이터 파싱 실패 (자동 재시도 ${MAX_ATTEMPTS}회 소진): ` + (lastError ? lastError.message : '알 수 없는 오류'),
         stopReason: response.stop_reason,
         contentLength: content.length,
         contentEnd: content.substring(content.length - 300),
-        textBlockCount: textBlocks.length
+        textBlockCount: textBlocks.length,
+        attemptsUsed
       });
     }
 
