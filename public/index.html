@@ -1444,15 +1444,10 @@ function buildHHCommentContent(i, a) {
         <div class="rp-hh-final-lbl">마지막으로</div>
         <div class="rp-hh-final-text">${a.hhFinal || ''}</div>
       </div>
-      <div style="display:flex;align-items:flex-end;justify-content:flex-end;gap:10px;padding-top:10px;border-top:1px solid var(--rule);">
-        <div style="text-align:right;">
-          <div style="font-family:var(--serif);font-size:13px;font-weight:700;color:var(--navy);margin-bottom:2px;">${i.consultantNameEn} (${i.consultantName})</div>
-          <div style="font-size:9px;color:var(--ink4);line-height:1.4;">${i.consultantTitle} · ${i.consultantBio}</div>
-          <div style="font-size:10px;font-weight:700;color:var(--navy);margin-top:2px;letter-spacing:1px;">㈜더라이징스타헤딩 · HEDING</div>
-        </div>
-        <div style="width:40px;height:40px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-          <span style="font-family:var(--serif);font-size:9px;font-weight:700;color:white;letter-spacing:1px;">HEDING</span>
-        </div>
+      <div style="padding-top:10px;border-top:1px solid var(--rule);text-align:right;">
+        ${(i.consultantNameEn || i.consultantName) ? `<div style="font-family:var(--serif);font-size:13px;font-weight:700;color:var(--navy);margin-bottom:2px;">${i.consultantNameEn ? i.consultantNameEn + (i.consultantName ? ` (${i.consultantName})` : '') : i.consultantName}</div>` : ''}
+        ${[i.consultantTitle, i.consultantBio].filter(Boolean).length ? `<div style="font-size:9px;color:var(--ink4);line-height:1.4;">${[i.consultantTitle, i.consultantBio].filter(Boolean).join(' · ')}</div>` : ''}
+        <div style="font-size:10px;font-weight:700;color:var(--navy);margin-top:2px;letter-spacing:1px;">㈜더라이징스타헤딩 · HEDING</div>
       </div>
     </div>`;
 
@@ -1547,21 +1542,21 @@ function renderResumeDiagnosisReport(data) {
 }
 
 function buildResumeConsultantNote(i, a) {
+  const nameLine = i.consultantNameEn
+    ? i.consultantNameEn + (i.consultantName ? ` (${i.consultantName})` : '')
+    : (i.consultantName || '');
+  const bioLine = [i.consultantTitle, i.consultantBio].filter(Boolean).join(' · ');
+
   return `<div class="rp-sec">
       <div class="rp-sh"><div class="rp-sn">Note</div><div class="rp-st">담당 컨설턴트 코멘트</div><div class="rp-se">Consultant's Note</div></div>
       <div class="rp-hh-final">
         <div class="rp-hh-final-lbl">${i.candidateName || ''} 님께</div>
         <div class="rp-hh-final-text">${a.consultantNote || ''}</div>
       </div>
-      <div style="display:flex;align-items:flex-end;justify-content:flex-end;gap:10px;padding-top:10px;border-top:1px solid var(--rule);">
-        <div style="text-align:right;">
-          <div style="font-family:var(--serif);font-size:13px;font-weight:700;color:var(--navy);margin-bottom:2px;">${i.consultantNameEn || ''} (${i.consultantName || ''})</div>
-          <div style="font-size:9px;color:var(--ink4);line-height:1.4;">${i.consultantTitle || ''} · ${i.consultantBio || ''}</div>
-          <div style="font-size:10px;font-weight:700;color:var(--navy);margin-top:2px;letter-spacing:1px;">㈜더라이징스타헤딩 · HEDING</div>
-        </div>
-        <div style="width:40px;height:40px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-          <span style="font-family:var(--serif);font-size:9px;font-weight:700;color:white;letter-spacing:1px;">HEDING</span>
-        </div>
+      <div style="padding-top:10px;border-top:1px solid var(--rule);text-align:right;">
+        ${nameLine ? `<div style="font-family:var(--serif);font-size:13px;font-weight:700;color:var(--navy);margin-bottom:2px;">${nameLine}</div>` : ''}
+        ${bioLine ? `<div style="font-size:9px;color:var(--ink4);line-height:1.4;">${bioLine}</div>` : ''}
+        <div style="font-size:10px;font-weight:700;color:var(--navy);margin-top:2px;letter-spacing:1px;">㈜더라이징스타헤딩 · HEDING</div>
       </div>
     </div>`;
 }
