@@ -595,11 +595,11 @@ body {
       </div>
       <div class="field">
         <label>현 소속</label>
-        <input type="text" id="currentCompany" placeholder="삼일회계법인 (PwC Korea)">
+        <input type="text" id="currentCompany" placeholder="예: OO기업">
       </div>
       <div class="field">
         <label>직급</label>
-        <input type="text" id="currentTitle" placeholder="Senior Manager">
+        <input type="text" id="currentTitle" placeholder="예: 팀장 / Manager">
       </div>
       <div class="field">
         <label>총 경력</label>
@@ -611,7 +611,7 @@ body {
       </div>
       <div class="field">
         <label>주요 자격증</label>
-        <input type="text" id="certifications" placeholder="KICPA, CISA">
+        <input type="text" id="certifications" placeholder="해당 시 입력 (없으면 비워두세요)">
       </div>
     </div>
 
@@ -630,15 +630,15 @@ body {
       <div class="sidebar-section-title">④ 이직 목표</div>
       <div class="field">
         <label>희망 직무</label>
-        <input type="text" id="targetRole" placeholder="재무기획 · CFO 오피스">
+        <input type="text" id="targetRole" placeholder="예: 지원하시는 목표 직무를 입력하세요">
       </div>
       <div class="field">
         <label>타깃 기업 유형</label>
         <select id="targetCompanyType">
           <option value="">선택하세요</option>
           <option value="startup">스타트업 (스케일업 단계) 우선</option>
-          <option value="large">대기업 금융사 우선</option>
-          <option value="foreign">외국계 금융기관 우선</option>
+          <option value="large">대기업 우선</option>
+          <option value="foreign">외국계 기업 우선</option>
           <option value="mixed">스타트업 + 대기업 병행</option>
           <option value="any">업종 무관</option>
         </select>
@@ -653,7 +653,7 @@ body {
       </div>
       <div class="field">
         <label>필수 조건</label>
-        <input type="text" id="mustHave" placeholder="유연근무, 수평적 문화">
+        <input type="text" id="mustHave" placeholder="예: 유연근무, 수평적 문화 등">
       </div>
     </div>
 
@@ -663,11 +663,11 @@ body {
       <div class="field">
         <label>상담 핵심 내용</label>
         <textarea class="consult-textarea" id="consultContent" placeholder="상담에서 나온 주요 내용을 자유롭게 입력하세요.
-예) 스타트업 관심 있음, 이력서 금융 키워드 과다, 면접 경험 부족, 대표이사 비전 확인 후 결정 희망..."></textarea>
+예) 희망 업종·직무 변화, 이력서상 특이사항, 면접 경험, 의사결정 시 고려사항 등..."></textarea>
       </div>
       <div class="field">
         <label>후속 액션 (쉼표로 구분)</label>
-        <textarea id="nextActions" style="min-height:70px" placeholder="이력서 재구성 지원,스타트업 포지션 서칭,대기업 채용 모니터링"></textarea>
+        <textarea id="nextActions" style="min-height:70px" placeholder="예: 이력서 재구성 지원,타깃 기업 서칭,채용 공고 모니터링"></textarea>
       </div>
       <div class="field">
         <label>2차 상담 일정</label>
@@ -680,19 +680,19 @@ body {
       <div class="sidebar-section-title">⑥ 담당 컨설턴트</div>
       <div class="field">
         <label>이름 (한글)</label>
-        <input type="text" id="consultantName" placeholder="오시나" value="오시나">
+        <input type="text" id="consultantName" placeholder="예: 담당 컨설턴트 이름 (한글)">
       </div>
       <div class="field">
         <label>이름 (영문)</label>
-        <input type="text" id="consultantNameEn" placeholder="Shina OH" value="Shina OH">
+        <input type="text" id="consultantNameEn" placeholder="예: Hong Gildong">
       </div>
       <div class="field">
         <label>직급</label>
-        <input type="text" id="consultantTitle" placeholder="부대표 · VP" value="부대표 · VP">
+        <input type="text" id="consultantTitle" placeholder="예: 팀장 · Consultant">
       </div>
       <div class="field">
         <label>경력 소개</label>
-        <input type="text" id="consultantBio" placeholder="16년 경력 · Executive Search 전문가" value="16년 경력 · Executive Search 전문가">
+        <input type="text" id="consultantBio" placeholder="예: OO년 경력 · Executive Search 전문가">
       </div>
     </div>
 
@@ -1052,7 +1052,7 @@ function buildCover(i, a, tocMap, totalPages) {
   div.innerHTML = `<div class="rp-cover">
     <div class="rp-kicker">Career Diagnosis Report · HEDING</div>
     <div class="rp-title">HEDING 이직 진단 리포트</div>
-    <div class="rp-sub">${i.certifications || 'KICPA'} · ${i.currentCompany} · ${i.currentTitle} · ${i.careerYears} 경력 기반 분석</div>
+    <div class="rp-sub">${i.certifications ? i.certifications + ' · ' : ''}${i.currentCompany} · ${i.currentTitle} · ${i.careerYears} 경력 기반 분석</div>
     <div class="rp-rule"></div>
     <div class="rp-meta">
       <div class="rp-cell"><div class="rp-lbl">분석 대상</div><div class="rp-val">${i.candidateName}</div></div>
@@ -1414,8 +1414,8 @@ function buildConsultRecordContent(i, a) {
 function getTargetTypeLabel(type) {
   const map = {
     startup: '스타트업 (시리즈 B~D · IPO 준비) 우선',
-    large: '대기업 금융사 우선',
-    foreign: '외국계 금융기관 우선',
+    large: '대기업 우선',
+    foreign: '외국계 기업 우선',
     mixed: '스타트업 + 대기업 병행',
     any: '업종 무관 · 성장 단계 기준'
   };
