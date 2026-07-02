@@ -82,6 +82,10 @@ body {
 .sidebar-section {
   margin-bottom: 28px;
 }
+.mode-tabs { display: flex; gap: 6px; margin-bottom: 24px; background: rgba(255,255,255,.04); padding: 4px; border-radius: 4px; }
+.mode-tab { flex: 1; background: transparent; border: none; color: rgba(255,255,255,.4); font-size: 11px; font-weight: 700; letter-spacing: .5px; padding: 9px 8px; border-radius: 3px; cursor: pointer; transition: all .15s; }
+.mode-tab.active { background: var(--gold2); color: var(--navy); }
+.mode-hidden { display: none !important; }
 .sidebar-section-title {
   font-size:11px;
   letter-spacing: 2px;
@@ -341,11 +345,9 @@ body {
 .rp-lbl { font-size:9px; letter-spacing: 2px; color: rgba(255,255,255,.28); text-transform: uppercase; margin-bottom: 5px; font-weight: 700; }
 .rp-val { font-size:12px; color: white; line-height: 1.45; font-weight: 700; }
 
-.rp-grade-row { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 26px; }
-.rp-grade-box { border: 1px solid rgba(255,255,255,.15); border-radius: 2px; padding: 16px 22px; text-align: center; min-width: 100px; }
-.rp-grade-n { font-family: var(--serif); font-size:37px; color: white; line-height: 1; font-weight: 700; }
-.rp-grade-lbl { font-size:10px; color: var(--gold2); margin-top: 5px; letter-spacing: 1px; font-weight: 700; }
-.rp-grade-desc { font-size:11.5px; color: rgba(255,255,255,.48); line-height: 1.9; padding-top: 4px; flex: 1; }
+.rp-summary-block { margin-bottom: 26px; }
+.rp-summary-lbl { font-size:9px; letter-spacing: 2px; color: var(--gold2); text-transform: uppercase; font-weight: 700; margin-bottom: 8px; }
+.rp-summary-text { font-size:11.5px; color: rgba(255,255,255,.6); line-height: 1.9; }
 
 .rp-notice {
   background: rgba(255,255,255,.04);
@@ -357,6 +359,30 @@ body {
 }
 .rp-notice-lbl { font-size:9px; letter-spacing: 2px; color: var(--gold2); text-transform: uppercase; font-weight: 700; margin-bottom: 5px; }
 .rp-notice-txt { font-size:11px; color: rgba(255,255,255,.5); line-height: 1.75; }
+
+/* ── 이력서 진단 리포트 전용 스타일 ── */
+.rd-priority-wrap { margin-top: 20px; }
+.rd-priority-lbl { font-size: 8px; letter-spacing: 2px; color: var(--gold2); text-transform: uppercase; font-weight: 700; margin-bottom: 10px; }
+.rd-priority-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+.rd-priority-n { font-family: var(--serif); font-size: 12px; font-weight: 700; color: var(--gold2); min-width: 18px; }
+.rd-priority-t { font-size: 10px; color: rgba(255,255,255,.75); line-height: 1.6; padding-top: 1px; }
+
+.rd-section { border: 1px solid var(--rule); border-radius: 2px; overflow: hidden; }
+.rd-section-hd { background: var(--navy); padding: 8px 13px; }
+.rd-section-name { font-size: 9px; letter-spacing: 1.5px; color: white; font-weight: 700; text-transform: uppercase; }
+.rd-compare { display: flex; }
+.rd-col { flex: 1; padding: 12px 14px; }
+.rd-col-before { background: var(--bg); border-right: 1px solid var(--rule); }
+.rd-col-after { background: white; }
+.rd-col-lbl { font-size: 8px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; margin-bottom: 7px; }
+.rd-col-before .rd-col-lbl { color: var(--red); }
+.rd-col-after .rd-col-lbl { color: var(--green); }
+.rd-text { font-size: 9.5px; line-height: 1.75; color: var(--ink2); }
+.rd-changes { padding: 10px 14px; border-top: 1px solid var(--rule); background: var(--bg); }
+.rd-change-item { font-size: 8.5px; color: var(--ink3); line-height: 1.7; }
+.rd-reason { font-size: 8.5px; color: var(--gold2); font-style: italic; margin-top: 5px; }
+
+
 
 .rp-kpis { display: flex; gap: 10px; margin-bottom: 22px; }
 .rp-kpi { flex: 1; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); border-radius: 2px; padding: 13px 14px; }
@@ -399,6 +425,9 @@ body {
 
 .rp-sec { margin-bottom: 22px; }
 .rp-legal-note { font-size:8.5px; color: var(--ink4); line-height: 1.6; padding-top: 8px; border-top: 1px solid var(--rule); margin-top: 4px; }
+.rp-method { border: 1px solid var(--rule); border-radius: 2px; padding: 10px 13px; margin-bottom: 10px; background: var(--bg); }
+.rp-method-lbl { font-size: 8px; letter-spacing: 1.5px; color: var(--gold2); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+.rp-method-text { font-size: 8.5px; color: var(--ink3); line-height: 1.6; }
 .rp-sh { display: flex; align-items: baseline; gap: 10px; margin-bottom: 13px; padding-bottom: 9px; border-bottom: 1.5px solid var(--navy); }
 .rp-sn { font-size:9px; letter-spacing: 2.5px; color: var(--gold); font-weight: 700; text-transform: uppercase; min-width: 22px; }
 .rp-st { font-family: var(--serif); font-size:15px; font-weight: 700; color: var(--ink); }
@@ -427,6 +456,13 @@ body {
 .rp-sw-dot.w { background: var(--red); }
 .rp-sw-title { font-size:10.5px; font-weight: 700; color: var(--ink); display: block; margin-bottom: 1px; }
 .rp-sw-desc { font-size:9px; color: var(--ink4); line-height: 1.6; }
+
+.rp-edit-head { font-size: 8.5px; letter-spacing: 1.5px; font-weight: 700; text-transform: uppercase; color: var(--ink4); margin-bottom: 9px; padding-bottom: 5px; border-bottom: 1px solid var(--rule); }
+.rp-edit-item { border: 1px solid var(--rule); border-radius: 2px; padding: 12px 14px; margin-bottom: 10px; }
+.rp-edit-label { font-size: 8px; letter-spacing: 1.5px; color: var(--ink4); text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+.rp-edit-original { font-size: 9.5px; color: var(--ink3); text-decoration: line-through; text-decoration-color: var(--red); margin-bottom: 8px; line-height: 1.6; }
+.rp-edit-suggested { font-size: 10px; color: var(--navy); font-weight: 700; margin-bottom: 6px; line-height: 1.6; background: var(--bg); padding: 8px 10px; border-radius: 2px; border-left: 2px solid var(--green); }
+.rp-edit-reason { font-size: 8.5px; color: var(--ink4); font-style: italic; }
 
 /* sal bars */
 .rp-sal-wrap { background: var(--navy); border-radius: 2px; padding: 14px 18px; margin-bottom: 12px; }
@@ -567,6 +603,12 @@ body {
   <!-- ── 사이드바 ── -->
   <aside class="sidebar">
 
+    <!-- 리포트 종류 선택 -->
+    <div class="mode-tabs">
+      <button type="button" class="mode-tab active" id="modeTabTransfer" onclick="setReportMode('transfer')">이직 진단</button>
+      <button type="button" class="mode-tab" id="modeTabResume" onclick="setReportMode('resume')">이력서 진단</button>
+    </div>
+
     <!-- 이력서 업로드 -->
     <div class="sidebar-section">
       <div class="sidebar-section-title">① 이력서 업로드</div>
@@ -626,7 +668,7 @@ body {
     </div>
 
     <!-- 이직 목표 -->
-    <div class="sidebar-section">
+    <div class="sidebar-section" data-mode="transfer">
       <div class="sidebar-section-title">④ 이직 목표</div>
       <div class="field">
         <label>희망 직무</label>
@@ -665,11 +707,11 @@ body {
         <textarea class="consult-textarea" id="consultContent" placeholder="상담에서 나온 주요 내용을 자유롭게 입력하세요.
 예) 희망 업종·직무 변화, 이력서상 특이사항, 면접 경험, 의사결정 시 고려사항 등..."></textarea>
       </div>
-      <div class="field">
+      <div class="field" data-mode="transfer">
         <label>후속 액션 (쉼표로 구분)</label>
         <textarea id="nextActions" style="min-height:70px" placeholder="예: 이력서 재구성 지원,타깃 기업 서칭,채용 공고 모니터링"></textarea>
       </div>
-      <div class="field">
+      <div class="field" data-mode="transfer">
         <label>2차 상담 일정</label>
         <input type="text" id="nextMeeting" placeholder="2026.07.">
       </div>
@@ -739,6 +781,35 @@ body {
 let resumeText = '';
 let reportData = {};
 let isGenerating = false;
+let reportMode = 'transfer'; // 'transfer' (이직 진단) | 'resume' (이력서 진단)
+
+const STEP_LABELS = {
+  transfer: ['이력서 분석 중', '시장 데이터 매핑', '커리어 포지셔닝 진단', '헤드헌터 코멘트 작성', '리포트 완성'],
+  resume: ['이력서 원문 분석 중', '섹션별 진단 중', '개선안 작성 중', '우선순위 정리 중', '리포트 완성']
+};
+
+function updateStepLabels(mode) {
+  const labels = STEP_LABELS[mode] || STEP_LABELS.transfer;
+  labels.forEach((text, idx) => {
+    const el = document.getElementById('step' + (idx + 1));
+    if (el) el.innerHTML = '<div class="step-dot"></div>' + text;
+  });
+}
+
+function setReportMode(mode) {
+  reportMode = mode;
+  updateStepLabels(mode);
+  document.getElementById('modeTabTransfer').classList.toggle('active', mode === 'transfer');
+  document.getElementById('modeTabResume').classList.toggle('active', mode === 'resume');
+  document.querySelectorAll('[data-mode="transfer"]').forEach(el => {
+    el.classList.toggle('mode-hidden', mode !== 'transfer');
+  });
+  document.getElementById('generateBtn').textContent = mode === 'resume' ? '이력서 진단 생성하기' : '리포트 생성하기';
+  // 리포트 종류가 바뀌면 기존 결과물은 초기화
+  document.querySelectorAll('.report-page').forEach(el => el.remove());
+  document.getElementById('downloadBtn').classList.remove('visible');
+  document.getElementById('previewPlaceholder').style.display = 'flex';
+}
 
 // ── pdf.js worker 설정 ──
 if (window['pdfjsLib']) {
@@ -879,7 +950,8 @@ async function generateReport() {
     await delay(300);
     setStep(2);
 
-    const res = await fetch('/api/generate-report', {
+    const endpoint = reportMode === 'resume' ? '/api/generate-resume-diagnosis' : '/api/generate-report';
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ resumeText, inputs })
@@ -896,7 +968,11 @@ async function generateReport() {
     setStep(5);
     await delay(200);
 
-    renderReport(data);
+    if (reportMode === 'resume') {
+      renderResumeDiagnosisReport(data);
+    } else {
+      renderReport(data);
+    }
     document.getElementById('downloadBtn').classList.add('visible');
 
   } catch (err) {
@@ -980,7 +1056,8 @@ function renderReport(data) {
 }
 
 // ── 섹션들을 실제 콘텐츠 높이 기준으로 페이지에 자동 배분 ──
-function packSections(sections, i) {
+function packSections(sections, i, reportTitle) {
+  reportTitle = reportTitle || '이직 진단 리포트';
   const CONTENT_BUDGET = 960; // .rp-pg 내부 실사용 가능 높이(px, 여유분 포함)
   const MEASURE_WIDTH = 694;  // 794px 페이지 폭 - 좌우 padding(50*2)
 
@@ -1020,7 +1097,7 @@ function packSections(sections, i) {
     const div = document.createElement('div');
     div.className = 'report-page';
     div.innerHTML = `<div class="rp-pg">
-      <div class="rp-pg-hd"><div class="rp-pg-logo">HEDING</div><div class="rp-pg-meta">이직 진단 리포트 · ${i.candidateName} · ${i.dateShort}</div></div>
+      <div class="rp-pg-hd"><div class="rp-pg-logo">HEDING</div><div class="rp-pg-meta">${reportTitle} · ${i.candidateName} · ${i.dateShort}</div></div>
       ${group.map(s => s.html).join('')}
       <div class="rp-pg-ft"><div class="rp-ft-d">HEDING Career Intelligence · Confidential</div><div class="rp-ft-p">${pageNum} / ${totalPages}</div></div>
     </div>`;
@@ -1060,12 +1137,9 @@ function buildCover(i, a, tocMap, totalPages) {
       <div class="rp-cell"><div class="rp-lbl">직급 · 경력</div><div class="rp-val">${i.currentTitle}<br>총 ${i.careerYears}</div></div>
       <div class="rp-cell" style="border-right:none"><div class="rp-lbl">발행일</div><div class="rp-val">${i.dateStr}<br>HEDING</div></div>
     </div>
-    <div class="rp-grade-row">
-      <div class="rp-grade-box">
-        <div class="rp-grade-n">${a.grade || 'A+'}</div>
-        <div class="rp-grade-lbl">시장 경쟁력</div>
-      </div>
-      <div class="rp-grade-desc">${a.gradeSummary || '우수한 경력 프로파일을 보유하고 있습니다.'}</div>
+    <div class="rp-summary-block">
+      <div class="rp-summary-lbl">HEDING 종합 소견</div>
+      <div class="rp-summary-text">${a.summary || ''}</div>
     </div>
     <div class="rp-notice">
       <div class="rp-notice-lbl">리포트 안내</div>
@@ -1115,7 +1189,7 @@ function buildDiagnosisContent(i, a) {
         <div class="rp-verdict-kpis">
           <div class="rp-vk"><div class="rp-vk-lbl">현재 처우</div><div class="rp-vk-val">${i.currentSalary || '-'}</div><div class="rp-vk-sub">기본급 기준</div></div>
           <div class="rp-vk"><div class="rp-vk-lbl">저평가 추정</div><div class="rp-vk-val">${a.undervaluation || '-'}</div><div class="rp-vk-sub">구조적 저평가<br>이직으로 회복 가능</div></div>
-          <div class="rp-vk"><div class="rp-vk-lbl">이직 타이밍</div><div class="rp-vk-val">${a.timingLabel || '지금'}</div><div class="rp-vk-sub">${a.timingDesc || ''}</div></div>
+          <div class="rp-vk"><div class="rp-vk-lbl">이직 타이밍</div><div class="rp-vk-val">${a.timingLabel || '시장 탐색기'}</div><div class="rp-vk-sub">${a.timingDesc || ''}</div></div>
         </div>
       </div>
     </div>`;
@@ -1133,7 +1207,21 @@ function buildDiagnosisContent(i, a) {
       </div>
     </div>`;
 
-  return [chunk1, chunk2];
+  const edits = (a.resumeEdits || []).map(e => `
+    <div class="rp-edit-item">
+      <div class="rp-edit-label">이력서 원문</div>
+      <div class="rp-edit-original">${e.original}</div>
+      <div class="rp-edit-label">HEDING 수정 제안</div>
+      <div class="rp-edit-suggested">${e.suggested}</div>
+      <div class="rp-edit-reason">${e.reason}</div>
+    </div>`).join('');
+
+  const chunk3 = edits ? `<div class="rp-sec">
+      <div class="rp-edit-head">이력서 즉시 수정 포인트 — HEDING 제안</div>
+      ${edits}
+    </div>` : '';
+
+  return chunk3 ? [chunk1, chunk2, chunk3] : [chunk1, chunk2];
 }
 
 function buildPositioningContent(i, a) {
@@ -1253,20 +1341,18 @@ function buildStrategyContent(i, a) {
       <div style="display:flex;">${tl}</div>
     </div>`;
 
-  const chunk2 = `<div class="rp-sec">
-      <div class="rp-strat-cols">
-        <div class="rp-strat-col">
-          <div class="rp-strat-col-hd">${a.stratLeftTitle || '주요 타깃 전략'}</div>
-          ${leftStrats}
-        </div>
-        <div class="rp-strat-col">
-          <div class="rp-strat-col-hd">${a.stratRightTitle || '보완 전략'}</div>
-          ${rightStrats}
-        </div>
-      </div>
-    </div>`;
+  const risks = (a.riskFactors || []).map(r => `
+    <div class="rp-si">
+      <span class="rp-si-tag warn">유의</span>
+      <div><span class="rp-si-title">${r.title}</span><div class="rp-si-body">${r.desc}</div></div>
+    </div>`).join('');
 
-  return [chunk1, chunk2];
+  const chunk3 = risks ? `<div class="rp-sec">
+      <div class="rp-strat-col-hd">준비해야 할 것 — HEDING이 솔직하게 짚는 것</div>
+      ${risks}
+    </div>` : '';
+
+  return chunk3 ? [chunk1, chunk2, chunk3] : [chunk1, chunk2];
 }
 
 function buildActionPlanContent(i, a) {
@@ -1405,7 +1491,7 @@ function buildConsultRecordContent(i, a) {
         ${actions}
         <div class="rp-next-row"><div class="rp-next-dot"></div><div class="rp-next-text">2차 상담 일정: ${i.nextMeeting || '미정'}</div></div>
       </div>
-      <div class="rp-legal-note">본 리포트는 이력서·설문 분석과 HEDING 실무 데이터 기반의 커리어 진단 참고자료입니다. 특정 채용 결과·연봉을 보장하지 않습니다. © ${i.year} The Rising Star Heding Co., Ltd.</div>
+      <div class="rp-legal-note">본 리포트는 이력서·설문·상담 내용과 HEDING 실무 데이터 기반의 커리어 진단 참고자료입니다. 특정 채용 결과·연봉을 보장하지 않습니다. © ${i.year} The Rising Star Heding Co., Ltd.</div>
     </div>`;
 
   return [chunk1, chunk2];
@@ -1420,6 +1506,112 @@ function getTargetTypeLabel(type) {
     any: '업종 무관 · 성장 단계 기준'
   };
   return map[type] || type || '-';
+}
+
+// ══════════════════════════════════════════
+// 이력서 진단 리포트 (Before/After 대조표)
+// ══════════════════════════════════════════
+
+function renderResumeDiagnosisReport(data) {
+  const preview = document.getElementById('previewArea');
+  const i = data.inputs;
+  const a = data.analysis;
+
+  const flat = [];
+  (a.sections || []).forEach(s => flat.push({ key: 'section', html: buildResumeSectionChunk(s) }));
+  if (a.consultantNote) {
+    flat.push({ key: 'consultantNote', html: buildResumeConsultantNote(i, a) });
+  }
+  const { pageDivs, totalPages } = packSections(flat, i, '이력서 진단 리포트');
+
+  preview.appendChild(buildResumeCover(i, a, totalPages));
+  pageDivs.forEach(div => preview.appendChild(div));
+
+  document.querySelectorAll('.report-page').forEach(page => {
+    page.setAttribute('contenteditable', 'true');
+    page.style.outline = 'none';
+  });
+}
+
+function buildResumeConsultantNote(i, a) {
+  return `<div class="rp-sec">
+      <div class="rp-sh"><div class="rp-sn">Note</div><div class="rp-st">담당 컨설턴트 코멘트</div><div class="rp-se">Consultant's Note</div></div>
+      <div class="rp-hh-final">
+        <div class="rp-hh-final-lbl">${i.candidateName || ''} 님께</div>
+        <div class="rp-hh-final-text">${a.consultantNote || ''}</div>
+      </div>
+      <div style="display:flex;align-items:flex-end;justify-content:flex-end;gap:10px;padding-top:10px;border-top:1px solid var(--rule);">
+        <div style="text-align:right;">
+          <div style="font-family:var(--serif);font-size:13px;font-weight:700;color:var(--navy);margin-bottom:2px;">${i.consultantNameEn || ''} (${i.consultantName || ''})</div>
+          <div style="font-size:9px;color:var(--ink4);line-height:1.4;">${i.consultantTitle || ''} · ${i.consultantBio || ''}</div>
+          <div style="font-size:10px;font-weight:700;color:var(--navy);margin-top:2px;letter-spacing:1px;">㈜더라이징스타헤딩 · HEDING</div>
+        </div>
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <span style="font-family:var(--serif);font-size:9px;font-weight:700;color:white;letter-spacing:1px;">HEDING</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+function buildResumeCover(i, a, totalPages) {
+  const div = document.createElement('div');
+  div.className = 'report-page';
+
+  const priorities = (a.topPriorities || []).map((p, idx) => `
+    <div class="rd-priority-item"><span class="rd-priority-n">${idx + 1}</span><span class="rd-priority-t">${p}</span></div>`).join('');
+
+  div.innerHTML = `<div class="rp-cover">
+    <div class="rp-kicker">Resume Diagnosis · HEDING</div>
+    <div class="rp-title">HEDING 이력서 진단 리포트</div>
+    <div class="rp-sub">${i.currentCompany || ''} · ${i.currentTitle || ''} · ${i.careerYears || ''} 경력 기반 분석</div>
+    <div class="rp-rule"></div>
+    <div class="rp-meta">
+      <div class="rp-cell"><div class="rp-lbl">분석 대상</div><div class="rp-val">${i.candidateName}</div></div>
+      <div class="rp-cell"><div class="rp-lbl">현 소속</div><div class="rp-val">${i.currentCompany || '-'}</div></div>
+      <div class="rp-cell"><div class="rp-lbl">직급 · 경력</div><div class="rp-val">${i.currentTitle || '-'}<br>총 ${i.careerYears || '-'}</div></div>
+      <div class="rp-cell" style="border-right:none"><div class="rp-lbl">발행일</div><div class="rp-val">${i.dateStr}<br>HEDING</div></div>
+    </div>
+    <div class="rp-summary-block">
+      <div class="rp-summary-lbl">HEDING 종합 소견</div>
+      <div class="rp-summary-text">${a.overallSummary || ''}</div>
+    </div>
+    <div class="rp-notice">
+      <div class="rp-notice-lbl">리포트 안내</div>
+      <div class="rp-notice-txt">본 리포트는 제출하신 이력서 원문을 섹션별로 분석하여, 각 섹션의 원문과 HEDING이 제안하는 개선안을 나란히 비교합니다. 모든 개선안은 실제 이력서 내용에 근거하며, 확인되지 않은 경력·성과를 임의로 추가하지 않습니다.</div>
+    </div>
+    ${priorities ? `<div class="rd-priority-wrap">
+      <div class="rd-priority-lbl">가장 시급하게 손봐야 할 것 — Top ${(a.topPriorities || []).length}</div>
+      ${priorities}
+    </div>` : ''}
+    <div class="rp-footer">
+      <div class="rp-footer-l">Confidential · For Recipient Only<br>Prepared by HEDING Career Intelligence · ${i.dateShort}</div>
+      <div class="rp-footer-r">HEDING</div>
+    </div>
+  </div>`;
+  return div;
+}
+
+function buildResumeSectionChunk(s) {
+  const changes = (s.changes || []).map(c => `<div class="rd-change-item">· ${c}</div>`).join('');
+  return `<div class="rp-sec">
+      <div class="rd-section">
+        <div class="rd-section-hd"><div class="rd-section-name">${s.sectionName || '섹션'}</div></div>
+        <div class="rd-compare">
+          <div class="rd-col rd-col-before">
+            <div class="rd-col-lbl">이력서 원문</div>
+            <div class="rd-text">${(s.original || '').replace(/\\n/g, '<br>')}</div>
+          </div>
+          <div class="rd-col rd-col-after">
+            <div class="rd-col-lbl">HEDING 개선안</div>
+            <div class="rd-text">${(s.improved || '').replace(/\\n/g, '<br>')}</div>
+          </div>
+        </div>
+        ${changes || s.reason ? `<div class="rd-changes">
+          ${changes}
+          ${s.reason ? `<div class="rd-reason">${s.reason}</div>` : ''}
+        </div>` : ''}
+      </div>
+    </div>`;
 }
 
 // ── PDF 다운로드 ──
@@ -1448,7 +1640,8 @@ async function downloadReport() {
       pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, imgHeight);
     }
 
-    pdf.save('HEDING_이직진단리포트.pdf');
+    const fileName = reportMode === 'resume' ? 'HEDING_이력서진단리포트.pdf' : 'HEDING_이직진단리포트.pdf';
+    pdf.save(fileName);
   } catch (err) {
     console.error('PDF 생성 오류:', err);
     alert('PDF 생성 중 오류가 발생했습니다: ' + err.message);
