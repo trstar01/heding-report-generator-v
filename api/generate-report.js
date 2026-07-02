@@ -241,7 +241,8 @@ ${i.consultContent || '상담 내용 없음'}
 10. fitTable과 negotiation에서 업종을 언급할 때, 후보자의 실제 업종에 맞게 시장에서 통용되는 구체적 지칭을 사용한다 (예: 회계업이면 "4대 회계법인", IT/플랫폼이면 "네카라쿠배급", 제조업이면 "국내 대기업 제조사", 유통·이커머스면 "주요 이커머스 플랫폼사", 헬스케어면 "국내 상위 제약·바이오사" 등 — 반드시 후보자의 실제 업종에 해당하는 지칭만 선택한다). 단, 확인 불가능한 특정 기업명을 임의로 지어내지는 않는다.
 10-1. salaryBands, negotiation의 label, hhPoints, verdictBody 등 리포트 어디에도, 후보자가 실제로 금융업(은행·증권·보험·자산운용 등) 종사자이거나 금융업으로 이직을 희망하는 경우가 아니라면 "금융지주", "금융기관", "금융사", "은행", "증권사" 같은 금융업 특정 단어를 절대 사용하지 않는다. 대기업 처우 기준을 예시로 들 때는 업종 특정 없이 "국내 대기업" 또는 후보자의 실제 업종명으로만 표현한다.
 11. verdictBody와 hhFinal에서는 "~할 수도 있습니다", "~로 보입니다" 같은 모호한 헤지 표현을 최소화하고, 헤드헌터로서 분명한 의견(추천/비추천, 우선순위)을 제시한다. 근거 없는 단정은 금지하되, 판단은 명확히 한다.
-12. 웹 검색으로 실제 확인된 내용이 있으면 verdictBody 또는 timingDesc 중 한 곳에 자연스럽게 반영해 이직 타이밍 판단의 근거로 활용한다. 검색 결과가 없거나 애매하면 이 내용은 절대 언급하지 않는다. 검색된 내용을 길게 인용하지 말고, 사실관계만 한두 문장으로 요약해서 반영한다.`;
+12. 웹 검색으로 실제 확인된 내용이 있으면 verdictBody 또는 timingDesc 중 한 곳에 자연스럽게 반영해 이직 타이밍 판단의 근거로 활용한다. 검색 결과가 없거나 애매하면 이 내용은 절대 언급하지 않는다. 검색된 내용을 길게 인용하지 말고, 사실관계만 한두 문장으로 요약해서 반영한다.
+13. 매우 중요: 웹 검색을 몇 번 하든, 검색 결과가 충분하든 부족하든 상관없이, 당신의 마지막 응답은 반드시 순수 JSON 객체 하나여야 한다. "검색 결과를 충분히 찾지 못해서" 같은 설명이나 사과, 코멘트를 절대 텍스트로 남기지 않는다. 검색이 부족하면 그냥 "기업 유형별 처우 격차 일반 원칙"과 이력서·설문·상담 내용만으로 합리적으로 채워서, 어떤 경우에도 완전한 JSON을 응답한다. 마크다운 코드블록도 쓰지 않는다.`;
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
@@ -250,21 +251,33 @@ ${i.consultContent || '상담 내용 없음'}
       messages: [{ role: 'user', content: prompt }]
     });
 
-    // 웹 검색 도구 사용 시 응답에 text 블록이 여러 개 섞여 올 수 있으므로,
-    // 마지막 text 블록(최종 JSON 응답)만 추출
+    // 웹 검색 도구 사용 시 응답에 text 블록이 여러 개 섞여 올 수 있고,
+    // 그중 일부는 JSON이 아닌 설명 텍스트일 수 있으므로,
+    // 뒤에서부터 순회하며 실제로 JSON으로 파싱되는 블록을 찾는다 (방어 로직)
     const textBlocks = response.content.filter(b => b.type === 'text');
-    const content = textBlocks.length > 0 ? textBlocks[textBlocks.length - 1].text : '';
+    let content = textBlocks.length > 0 ? textBlocks[textBlocks.length - 1].text : '';
+    let analysis = null;
+    let lastError = null;
 
-    let analysis;
-    try {
-      const clean = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      analysis = JSON.parse(clean);
-    } catch (e) {
+    for (let idx = textBlocks.length - 1; idx >= 0; idx--) {
+      const candidate = textBlocks[idx].text;
+      const clean = candidate.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      try {
+        analysis = JSON.parse(clean);
+        content = candidate;
+        break;
+      } catch (e) {
+        lastError = e;
+      }
+    }
+
+    if (!analysis) {
       return res.status(500).json({
-        error: '리포트 데이터 파싱 실패: ' + e.message,
+        error: '리포트 데이터 파싱 실패: ' + (lastError ? lastError.message : '알 수 없는 오류'),
         stopReason: response.stop_reason,
         contentLength: content.length,
-        contentEnd: content.substring(content.length - 300)
+        contentEnd: content.substring(content.length - 300),
+        textBlockCount: textBlocks.length
       });
     }
 
