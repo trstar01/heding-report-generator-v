@@ -23,8 +23,11 @@ export default async function handler(req, res) {
 
     // 이력서 텍스트는 클라이언트에서 추출되어 용량 제한이 없으므로 넉넉히 사용
     const trimmedResume = (resumeText || '').length > 25000 ? resumeText.slice(0, 25000) : (resumeText || '이력서 미첨부');
+    const prompt = `당신은 HEDING의 시니어 헤드헌터입니다. 헤드헌팅 경력 16년 이상, 5년 연속 최고 실적을 낸 전문가로서, 이 후보자를 실제로 만나 이력서를 검토한 뒤 판단을 내리는 것처럼 작성하세요.
 
-    const prompt = `당신은 HEDING의 시니어 헤드헌터입니다. 아래 후보자 정보를 바탕으로 이직 진단 리포트 데이터를 JSON으로 생성하세요.
+절대 "다양한 경험을 보유했다", "우수한 역량을 갖췄다", "빠르게 변화하는 시장" 같은 어디에나 갖다 붙일 수 있는 문구를 쓰지 마세요. 그런 문구가 하나라도 들어가면 이 리포트는 실패한 것입니다. 대신 이 후보자의 이력서에 실제로 적힌 회사명·프로젝트명·숫자를 직접 인용해서, 이 사람이 아니면 나올 수 없는 문장을 쓰세요.
+
+아래 후보자 정보를 바탕으로 이직 진단 리포트 데이터를 JSON으로 생성하세요.
 
 ## 후보자 정보
 - 이름: ${i.candidateName}
@@ -47,6 +50,12 @@ ${i.surveyContent || '설문 내용 없음'}
 
 ## 유선 상담 내용 (컨설턴트가 직접 입력)
 ${i.consultContent || '상담 내용 없음'}
+
+## 웹 검색 지시사항 (web_search 도구 사용)
+아래 두 가지를 반드시 웹 검색으로 확인한 뒤 리포트에 반영하세요. 검색 없이 추측으로 작성하지 마세요.
+1. "${i.currentCompany}" 관련 최근 뉴스·이슈 (실적, 구조조정, 투자유치, 조직개편 등 이직 타이밍 판단에 참고될 만한 것)
+2. "${targetTypeDesc}" 유형 기업들의 최근 채용 시장 동향 (채용 확대/축소, 최근 이 업계에서 화제가 된 이직 사례 등)
+검색 결과가 없거나 관련성이 낮으면 억지로 반영하지 말고, 이력서·설문·상담 내용 기반으로만 작성하세요.
 
 ## HEDING 시장 데이터 (연봉 수치는 반드시 이 범위 내에서만 제시)
 - 대기업 금융지주 팀장급: 1.5~2.0억
@@ -224,17 +233,25 @@ ${i.consultContent || '상담 내용 없음'}
 5. 설문/상담 내용이 비어있으면 해당 반영 없이 이력서 기반으로만 작성하고, 없는 내용을 지어내지 않는다.
 6. 헤드헌터 코멘트(hhPoints, hhFinal)는 실제 헤드헌터가 구두로 말하는 듯한 자연스러운 현장 언어로 작성한다 (AI가 쓴 듯한 상투적 문구 금지).
 7. consultSummary는 상담 내용이 있을 때만 작성하고, 없으면 빈 배열 []로 둔다.
-8. inputs 필드는 그대로 {} 로 남겨두세요 (서버에서 채움).`;
+8. inputs 필드는 그대로 {} 로 남겨두세요 (서버에서 채움).
+9. verdictBody, positioningDesc, fitTable[].desc, hhPoints[].text 중 최소 3곳 이상에서, 이력서에 실제로 등장하는 회사명·프로젝트명·수치·자격증명을 직접 인용해서 근거로 사용한다. "다양한 프로젝트를 통해", "폭넓은 경험을 바탕으로" 같이 구체적 근거 없이 뭉뚱그린 표현은 사용하지 않는다.
+10. fitTable과 negotiation에서 업종을 언급할 때, 가능하면 해당 업종 내 실제로 존재하는 한국 기업 유형(예: "4대 회계법인", "국내 3대 금융지주" 같이 시장에서 통용되는 구체적 지칭)을 사용한다. 단, 확인 불가능한 특정 기업명을 임의로 지어내지는 않는다.
+11. verdictBody와 hhFinal에서는 "~할 수도 있습니다", "~로 보입니다" 같은 모호한 헤지 표현을 최소화하고, 헤드헌터로서 분명한 의견(추천/비추천, 우선순위)을 제시한다. 근거 없는 단정은 금지하되, 판단은 명확히 한다.
+12. 웹 검색으로 실제 확인된 내용이 있으면 verdictBody 또는 timingDesc 중 한 곳에 자연스럽게 반영해 이직 타이밍 판단의 근거로 활용한다. 검색 결과가 없거나 애매하면 이 내용은 절대 언급하지 않는다. 검색된 내용을 길게 인용하지 말고, 사실관계만 한두 문장으로 요약해서 반영한다.`;
 
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 16000,
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 3 }],
       messages: [{ role: 'user', content: prompt }]
     });
 
-    const content = response.content[0].text;
+    // 웹 검색 도구 사용 시 응답에 text 블록이 여러 개 섞여 올 수 있으므로,
+    // 마지막 text 블록(최종 JSON 응답)만 추출
+    const textBlocks = response.content.filter(b => b.type === 'text');
+    const content = textBlocks.length > 0 ? textBlocks[textBlocks.length - 1].text : '';
 
-   let analysis;
+    let analysis;
     try {
       const clean = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       analysis = JSON.parse(clean);
@@ -247,12 +264,10 @@ ${i.consultContent || '상담 내용 없음'}
       });
     }
 
-    // inputs 첨부
-return res.status(200).json({ inputs, analysis });
+    return res.status(200).json({ inputs, analysis });
 
   } catch (err) {
     console.error('Generate error:', err);
     return res.status(500).json({ error: err.message || '리포트 생성 중 오류' });
   }
 }
-
