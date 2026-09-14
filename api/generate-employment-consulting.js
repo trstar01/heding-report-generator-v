@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 export const config = {
-  api: { bodyParser: { sizeLimit: '60mb' } } // 이력서+포트폴리오 원본 파일(각 base64, 최대 20MB)이 동시에 첨부될 수 있음을 감안
+  api: { bodyParser: { sizeLimit: '4mb' } } // Vercel 서버리스 함수 요청 용량은 4.5MB로 고정(변경 불가) — 이미지 압축 전송 방식으로 이 안에서 처리
 };
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -10,9 +10,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { resumeText, resumeFileBase64, resumeFileMediaType, portfolioText, portfolioFileBase64, portfolioFileMediaType, inputs } = req.body;
-    const useVisionForResume = !!(resumeFileBase64 && resumeFileMediaType);
-    const useVisionForPortfolio = !!(portfolioFileBase64 && portfolioFileMediaType);
+    const { resumeText, resumeFileImages, portfolioText, portfolioFileImages, inputs } = req.body;
+    const useVisionForResume = Array.isArray(resumeFileImages) && resumeFileImages.length > 0;
+    const useVisionForPortfolio = Array.isArray(portfolioFileImages) && portfolioFileImages.length > 0;
     const i = inputs;
 
     const trimmedResume = (resumeText || '').length > 20000 ? resumeText.slice(0, 20000) : (resumeText || '이력서 미첨부');
@@ -39,11 +39,11 @@ export default async function handler(req, res) {
 - 기타 요청사항: ${i.otherRequests || '없음'}
 
 ${useVisionForResume
-  ? '## 이력서\n이 메시지에 이력서 PDF 파일이 첨부되어 있습니다. 텍스트 추출이 되지 않는 이미지·디자인 위주 이력서이므로, 첨부된 파일을 직접 보고 분석하세요. 텍스트를 그대로 인용하는 대신, 실제로 본 내용을 구체적으로 서술하세요.'
+  ? '## 이력서\n이 메시지에 이력서 각 페이지를 이미지로 캡처한 것이 순서대로 첨부되어 있습니다. 텍스트 추출이 되지 않는 이미지·디자인 위주 이력서이므로, 첨부된 이미지를 직접 보고 분석하세요. 텍스트를 그대로 인용하는 대신, 실제로 본 내용을 구체적으로 서술하세요.'
   : `## 이력서 원문\n${trimmedResume}`}
 
 ${useVisionForPortfolio
-  ? '## 포트폴리오\n이 메시지에 포트폴리오 PDF 파일이 첨부되어 있습니다. 텍스트 추출이 되지 않는 이미지·디자인 위주의 파일이므로, 첨부된 파일을 직접 보고(페이지의 이미지, 레이아웃, 프로젝트 스크린샷 등) 분석하세요. 문서 내 텍스트를 그대로 인용하는 대신, "N페이지의 OO 프로젝트에서는..." 처럼 실제로 본 내용을 구체적으로 서술하세요. 영상 링크가 있어도 실제 영상을 재생해서 볼 수는 없으니, 페이지에 보이는 썸네일·설명·구성만으로 판단하세요.'
+  ? '## 포트폴리오\n이 메시지에 포트폴리오 각 페이지를 이미지로 캡처한 것이 순서대로 첨부되어 있습니다. 텍스트 추출이 되지 않는 이미지·디자인 위주의 파일이므로, 첨부된 이미지를 직접 보고(레이아웃, 프로젝트 스크린샷 등) 분석하세요. 문서 내 텍스트를 그대로 인용하는 대신, "N페이지의 OO 프로젝트에서는..." 처럼 실제로 본 내용을 구체적으로 서술하세요. 영상 링크가 있어도 실제 영상을 재생해서 볼 수는 없으니, 페이지에 보이는 썸네일·설명·구성만으로 판단하세요.'
   : `## 포트폴리오 원문 (텍스트 추출본)\n${trimmedPortfolio}`}
 
 다음 JSON을 생성하세요. 마크다운 없이 순수 JSON만 응답:
@@ -91,13 +91,16 @@ ${useVisionForPortfolio
     const MAX_ATTEMPTS = 2;
     let response, textBlocks = [], content = '', analysis = null, lastError = null, attemptsUsed = 0;
 
-    // 이력서·포트폴리오 중 이미지 기반인 것이 있으면, 각각 문서 블록으로 첨부 (둘 다일 수도, 하나만일 수도 있음)
+    // 이력서·포트폴리오 중 이미지 기반인 것이 있으면, 각 페이지 이미지들을 블록으로 첨부 (둘 다일 수도, 하나만일 수도 있음)
+    // 어느 쪽 이미지인지 Claude가 구분할 수 있도록 그룹 앞에 짧은 라벨 텍스트를 붙인다
     const documentBlocks = [];
     if (useVisionForResume) {
-      documentBlocks.push({ type: 'document', source: { type: 'base64', media_type: resumeFileMediaType, data: resumeFileBase64 } });
+      documentBlocks.push({ type: 'text', text: `[아래 ${resumeFileImages.length}장은 이력서 페이지 이미지입니다]` });
+      resumeFileImages.forEach(img => documentBlocks.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: img } }));
     }
     if (useVisionForPortfolio) {
-      documentBlocks.push({ type: 'document', source: { type: 'base64', media_type: portfolioFileMediaType, data: portfolioFileBase64 } });
+      documentBlocks.push({ type: 'text', text: `[아래 ${portfolioFileImages.length}장은 포트폴리오 페이지 이미지입니다]` });
+      portfolioFileImages.forEach(img => documentBlocks.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: img } }));
     }
     const requestContent = documentBlocks.length > 0
       ? [...documentBlocks, { type: 'text', text: prompt }]

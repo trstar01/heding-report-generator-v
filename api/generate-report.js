@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 export const config = {
-  api: { bodyParser: { sizeLimit: '30mb' } } // 이력서 원본 파일(base64, 최대 20MB)까지 수용
+  api: { bodyParser: { sizeLimit: '4mb' } } // Vercel 서버리스 함수 요청 용량은 4.5MB로 고정(변경 불가) — 이미지 압축 전송 방식으로 이 안에서 처리
 };
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -10,9 +10,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { resumeText, resumeFileBase64, resumeFileMediaType, inputs } = req.body;
+    const { resumeText, resumeFileImages, inputs } = req.body;
     const i = inputs;
-    const useVisionForResume = !!(resumeFileBase64 && resumeFileMediaType);
+    const useVisionForResume = Array.isArray(resumeFileImages) && resumeFileImages.length > 0;
 
     const targetTypeDesc = {
       startup: '스타트업(시리즈 B~D, IPO 준비 단계) 우선',
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
 - 필수 조건: ${i.mustHave || '없음'}
 
 ${useVisionForResume
-  ? '## 이력서\n이 메시지에 이력서 PDF 파일이 첨부되어 있습니다. 텍스트 추출이 되지 않는 이미지·디자인 위주 이력서이므로, 첨부된 파일을 직접 보고 분석하세요. 텍스트를 그대로 인용하는 대신, 실제로 본 내용을 구체적으로 서술하세요.'
+  ? '## 이력서\n이 메시지에 이력서 각 페이지를 이미지로 캡처한 것이 순서대로 첨부되어 있습니다. 텍스트 추출이 되지 않는 이미지·디자인 위주 이력서이므로, 첨부된 이미지를 직접 보고 분석하세요. 텍스트를 그대로 인용하는 대신, 실제로 본 내용을 구체적으로 서술하세요.'
   : `## 이력서 원문 (텍스트 추출본)\n${trimmedResume}`}
 
 ## 사전 설문 응답 (신청자가 직접 작성)
@@ -284,7 +284,7 @@ ${i.consultContent || '상담 내용 없음'}
 
     const requestContent = useVisionForResume
       ? [
-          { type: 'document', source: { type: 'base64', media_type: resumeFileMediaType, data: resumeFileBase64 } },
+          ...resumeFileImages.map(img => ({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: img } })),
           { type: 'text', text: prompt }
         ]
       : prompt;
