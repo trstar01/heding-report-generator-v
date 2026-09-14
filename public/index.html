@@ -605,7 +605,8 @@ body {
 
     <!-- 리포트 종류 선택 -->
     <div class="mode-tabs">
-      <button type="button" class="mode-tab active" id="modeTabTransfer" onclick="setReportMode('transfer')">이직 진단</button>
+      <button type="button" class="mode-tab active" id="modeTabEmployment" onclick="setReportMode('employment')">취업 컨설팅</button>
+      <button type="button" class="mode-tab" id="modeTabTransfer" onclick="setReportMode('transfer')">이직 진단</button>
       <button type="button" class="mode-tab" id="modeTabResume" onclick="setReportMode('resume')">이력서 진단</button>
     </div>
 
@@ -628,12 +629,26 @@ body {
       </div>
     </div>
 
+    <!-- 포트폴리오 업로드 (취업 컨설팅 전용) -->
+    <div class="sidebar-section" data-mode="employment">
+      <div class="sidebar-section-title">①-2 포트폴리오 업로드</div>
+      <div class="upload-zone" id="portfolioUploadZone" onclick="document.getElementById('portfolioInput').click()">
+        <div class="upload-icon">🎬</div>
+        <div class="upload-text">
+          <strong>포트폴리오 파일을 올려주세요</strong>
+          클릭하거나 파일을 드래그하세요<br>
+          <span style="font-size:11px;color:rgba(255,255,255,.2)">PDF · 용량 제한 없음</span>
+        </div>
+      </div>
+      <input type="file" id="portfolioInput" accept=".pdf" onchange="handlePortfolioUpload(event)">
+    </div>
+
     <!-- 후보자 기본 정보 (자동 채워짐 + 수동 수정 가능) -->
     <div class="sidebar-section">
       <div class="sidebar-section-title">② 후보자 정보</div>
       <div class="field">
         <label>이름</label>
-        <input type="text" id="candidateName" placeholder="이시형">
+        <input type="text" id="candidateName" placeholder="예: 후보자 이름">
       </div>
       <div class="field">
         <label>현 소속</label>
@@ -664,6 +679,78 @@ body {
         <label>설문 응답 붙여넣기</label>
         <textarea class="consult-textarea" id="surveyContent" placeholder="신청자가 작성한 사전설문 내용을 그대로 복사해서 붙여넣으세요.
 예) 이직 사유, 희망 업종, 처우 관련 답변, 어려운 점 등..."></textarea>
+      </div>
+    </div>
+
+    <!-- 연락처 (취업 컨설팅 전용) -->
+    <div class="sidebar-section" data-mode="employment">
+      <div class="sidebar-section-title">③-2 연락처</div>
+      <div class="field">
+        <label>이메일 주소</label>
+        <input type="text" id="emailAddress" placeholder="예: name@email.com">
+      </div>
+      <div class="field">
+        <label>연락처 (휴대폰 번호)</label>
+        <input type="text" id="phoneNumber" placeholder="예: 010-0000-0000">
+      </div>
+    </div>
+
+    <!-- 취업 준비 현황 (취업 컨설팅 전용) -->
+    <div class="sidebar-section" data-mode="employment">
+      <div class="sidebar-section-title">③-3 취업 준비 현황</div>
+      <div class="field">
+        <label>현재 취업/이직 준비 상황</label>
+        <textarea id="jobSearchStatus" style="min-height:60px" placeholder="예: 수료 후 첫 취업 준비 중 / 재직하며 이직 준비 중 등"></textarea>
+      </div>
+      <div class="field">
+        <label>기존 전공 또는 이전 경력 사항</label>
+        <textarea id="priorBackground" style="min-height:60px" placeholder="예: 시각디자인 전공, 마케팅 3년 경력 등"></textarea>
+      </div>
+      <div class="field">
+        <label>목표 취업 포지션 (복수 가능)</label>
+        <input type="text" id="targetPositions" placeholder="예: AI 영상 콘텐츠 제작자, 콘텐츠 기획자">
+      </div>
+      <div class="field">
+        <label>주로 다룰 수 있는 AI 툴 (복수 가능)</label>
+        <input type="text" id="aiTools" placeholder="예: Runway, Midjourney, ChatGPT">
+      </div>
+    </div>
+
+    <!-- 지원 이력 (취업 컨설팅 전용) -->
+    <div class="sidebar-section" data-mode="employment">
+      <div class="sidebar-section-title">③-4 지원 이력</div>
+      <div class="field">
+        <label>최근 지원했던 기업 및 전형 단계</label>
+        <textarea id="recentApplications" style="min-height:60px" placeholder="예: OO기업 서류 합격 후 1차 면접 탈락"></textarea>
+      </div>
+      <div class="field">
+        <label>불합격 사유 (자체 분석 또는 피드백)</label>
+        <textarea id="rejectionReasons" style="min-height:60px" placeholder="예: 포트폴리오에 실무 경험이 부족하다는 피드백"></textarea>
+      </div>
+      <div class="field">
+        <label>관심 있거나 지원 예정인 기업</label>
+        <input type="text" id="interestedCompanies" placeholder="예: OO기업, OO스튜디오">
+      </div>
+    </div>
+
+    <!-- 처우 및 기타 (취업 컨설팅 전용) -->
+    <div class="sidebar-section" data-mode="employment">
+      <div class="sidebar-section-title">③-5 처우 및 기타</div>
+      <div class="field">
+        <label>최근 직장 연봉 수준</label>
+        <input type="text" id="recentSalary" placeholder="예: 없음 (신입) 또는 3,000만원">
+      </div>
+      <div class="field">
+        <label>취업/이직 시 희망 연봉 수준</label>
+        <input type="text" id="desiredSalary" placeholder="예: 3,500만원">
+      </div>
+      <div class="field">
+        <label>포트폴리오 웹 링크 (선택)</label>
+        <input type="text" id="portfolioLink" placeholder="예: https://...">
+      </div>
+      <div class="field">
+        <label>기타 요청사항 및 사전 질문</label>
+        <textarea id="otherRequests" style="min-height:60px" placeholder="예: 특정 기업 지원 시 유의할 점이 궁금합니다"></textarea>
       </div>
     </div>
 
@@ -779,13 +866,15 @@ body {
 <script>
 // ── 전역 상태 ──
 let resumeText = '';
+let portfolioText = '';
 let reportData = {};
 let isGenerating = false;
-let reportMode = 'transfer'; // 'transfer' (이직 진단) | 'resume' (이력서 진단)
+let reportMode = 'employment'; // 기본값: 취업 컨설팅 (다른 값: 'transfer' 이직 진단 | 'resume' 이력서 진단)
 
 const STEP_LABELS = {
   transfer: ['이력서 분석 중', '시장 데이터 매핑', '커리어 포지셔닝 진단', '헤드헌터 코멘트 작성', '리포트 완성'],
-  resume: ['이력서 원문 분석 중', '섹션별 진단 중', '개선안 작성 중', '우선순위 정리 중', '리포트 완성']
+  resume: ['이력서 원문 분석 중', '섹션별 진단 중', '개선안 작성 중', '우선순위 정리 중', '리포트 완성'],
+  employment: ['이력서·포트폴리오 분석 중', '지원 전략 수립 중', '실행 플랜 작성 중', '헤드헌터 코멘트 작성 중', '리포트 완성']
 };
 
 function updateStepLabels(mode) {
@@ -801,10 +890,15 @@ function setReportMode(mode) {
   updateStepLabels(mode);
   document.getElementById('modeTabTransfer').classList.toggle('active', mode === 'transfer');
   document.getElementById('modeTabResume').classList.toggle('active', mode === 'resume');
+  document.getElementById('modeTabEmployment').classList.toggle('active', mode === 'employment');
   document.querySelectorAll('[data-mode="transfer"]').forEach(el => {
     el.classList.toggle('mode-hidden', mode !== 'transfer');
   });
-  document.getElementById('generateBtn').textContent = mode === 'resume' ? '이력서 진단 생성하기' : '리포트 생성하기';
+  document.querySelectorAll('[data-mode="employment"]').forEach(el => {
+    el.classList.toggle('mode-hidden', mode !== 'employment');
+  });
+  const btnLabels = { resume: '이력서 진단 생성하기', employment: '취업 컨설팅 리포트 생성하기' };
+  document.getElementById('generateBtn').textContent = btnLabels[mode] || '리포트 생성하기';
   // 리포트 종류가 바뀌면 기존 결과물은 초기화
   document.querySelectorAll('.report-page').forEach(el => el.remove());
   document.getElementById('downloadBtn').classList.remove('visible');
@@ -894,6 +988,29 @@ async function handleResumeUpload(event) {
   }
 }
 
+async function handlePortfolioUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const zone = document.getElementById('portfolioUploadZone');
+  zone.innerHTML = `<div class="upload-icon">⏳</div><div class="upload-text"><strong>읽는 중...</strong>${file.name}<br><span style="font-size:11px;color:rgba(255,255,255,.3)">파일 용량에 따라 시간이 걸릴 수 있습니다</span></div>`;
+
+  try {
+    const extractedText = await extractFileText(file);
+    if (!extractedText || extractedText.trim().length < 20) {
+      throw new Error('포트폴리오에서 텍스트를 읽지 못했습니다. 스캔본 이미지 PDF일 경우 텍스트 추출이 어려울 수 있습니다.');
+    }
+    portfolioText = extractedText;
+
+    zone.classList.add('uploaded');
+    zone.innerHTML = `<div class="upload-icon">✅</div><div class="upload-text"><strong style="color:#2E9E5F">업로드 완료</strong>${file.name}<br><span style="font-size:11px;color:rgba(255,255,255,.3)">${(portfolioText.length/1000).toFixed(1)}k자 추출됨</span></div>`;
+
+  } catch (err) {
+    zone.classList.remove('uploaded');
+    zone.innerHTML = `<div class="upload-icon">❌</div><div class="upload-text"><strong style="color:var(--red)">오류 발생</strong>${err.message}<br><span style="font-size:11px;color:rgba(255,255,255,.25)">다시 클릭해서 재시도하세요</span></div>`;
+  }
+}
+
 function getLbl(key) {
   const map = { name:'이름', company:'소속', title:'직급', career:'경력', salary:'연봉', certifications:'자격증', education:'학력' };
   return map[key] || key;
@@ -950,11 +1067,18 @@ async function generateReport() {
     await delay(300);
     setStep(2);
 
-    const endpoint = reportMode === 'resume' ? '/api/generate-resume-diagnosis' : '/api/generate-report';
+    const endpointMap = {
+      resume: '/api/generate-resume-diagnosis',
+      employment: '/api/generate-employment-consulting'
+    };
+    const endpoint = endpointMap[reportMode] || '/api/generate-report';
+    const body = reportMode === 'employment'
+      ? { resumeText, portfolioText, inputs }
+      : { resumeText, inputs };
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ resumeText, inputs })
+      body: JSON.stringify(body)
     });
 
     setStep(3);
@@ -970,6 +1094,8 @@ async function generateReport() {
 
     if (reportMode === 'resume') {
       renderResumeDiagnosisReport(data);
+    } else if (reportMode === 'employment') {
+      renderEmploymentReport(data);
     } else {
       renderReport(data);
     }
@@ -1012,6 +1138,19 @@ function collectInputs() {
     consultantNameEn: document.getElementById('consultantNameEn').value.trim(),
     consultantTitle: document.getElementById('consultantTitle').value.trim(),
     consultantBio: document.getElementById('consultantBio').value.trim(),
+    emailAddress: document.getElementById('emailAddress').value.trim(),
+    phoneNumber: document.getElementById('phoneNumber').value.trim(),
+    jobSearchStatus: document.getElementById('jobSearchStatus').value.trim(),
+    priorBackground: document.getElementById('priorBackground').value.trim(),
+    targetPositions: document.getElementById('targetPositions').value.trim(),
+    aiTools: document.getElementById('aiTools').value.trim(),
+    recentApplications: document.getElementById('recentApplications').value.trim(),
+    rejectionReasons: document.getElementById('rejectionReasons').value.trim(),
+    interestedCompanies: document.getElementById('interestedCompanies').value.trim(),
+    recentSalary: document.getElementById('recentSalary').value.trim(),
+    desiredSalary: document.getElementById('desiredSalary').value.trim(),
+    portfolioLink: document.getElementById('portfolioLink').value.trim(),
+    otherRequests: document.getElementById('otherRequests').value.trim(),
     dateStr,
     dateShort,
     year,
@@ -1622,6 +1761,143 @@ function buildResumeSectionChunk(s) {
     </div>`;
 }
 
+// ══════════════════════════════════════════
+// 취업 컨설팅 리포트 (AI 콘텐츠 제작 교육생 대상, 3~4페이지)
+// ══════════════════════════════════════════
+
+function buildEditItems(items) {
+  return (items || []).map(e => `
+    <div class="rp-edit-item">
+      <div class="rp-edit-label">원문</div>
+      <div class="rp-edit-original">${e.original || ''}</div>
+      <div class="rp-edit-label">HEDING 제안</div>
+      <div class="rp-edit-suggested">${e.suggested || ''}</div>
+      <div class="rp-edit-reason">${e.reason || ''}</div>
+    </div>`).join('');
+}
+
+function renderEmploymentReport(data) {
+  const preview = document.getElementById('previewArea');
+  const i = data.inputs;
+  const a = data.analysis;
+
+  const flat = [
+    { key: 'portfolio', html: buildEmploymentPortfolioContent(a) },
+    { key: 'resumeStrategy', html: buildEmploymentResumeStrategyContent(i, a) },
+    { key: 'actionNote', html: buildEmploymentActionContent(i, a) }
+  ];
+
+  const { pageDivs, totalPages } = packSections(flat, i, '취업 컨설팅 리포트');
+
+  preview.appendChild(buildEmploymentCover(i, a, totalPages));
+  pageDivs.forEach(div => preview.appendChild(div));
+
+  document.querySelectorAll('.report-page').forEach(page => {
+    page.setAttribute('contenteditable', 'true');
+    page.style.outline = 'none';
+  });
+}
+
+function buildEmploymentCover(i, a, totalPages) {
+  const div = document.createElement('div');
+  div.className = 'report-page';
+
+  div.innerHTML = `<div class="rp-cover">
+    <div class="rp-kicker">Employment Consulting · HEDING</div>
+    <div class="rp-title">HEDING 취업 컨설팅 리포트</div>
+    <div class="rp-sub">${i.targetPositions || '목표 포지션 미입력'} · ${i.aiTools || ''}</div>
+    <div class="rp-rule"></div>
+    <div class="rp-meta">
+      <div class="rp-cell"><div class="rp-lbl">지원자</div><div class="rp-val">${i.candidateName}${(i.emailAddress || i.phoneNumber) ? `<br><span style="font-size:9px;opacity:.6;">${[i.emailAddress, i.phoneNumber].filter(Boolean).join(' · ')}</span>` : ''}</div></div>
+      <div class="rp-cell"><div class="rp-lbl">이전 배경</div><div class="rp-val">${i.priorBackground || '-'}</div></div>
+      <div class="rp-cell"><div class="rp-lbl">목표 포지션</div><div class="rp-val">${i.targetPositions || '-'}</div></div>
+      <div class="rp-cell" style="border-right:none"><div class="rp-lbl">발행일</div><div class="rp-val">${i.dateStr}<br>HEDING</div></div>
+    </div>
+    <div class="rp-summary-block">
+      <div class="rp-summary-lbl">HEDING 종합 소견</div>
+      <div class="rp-summary-text">${a.summary || ''}</div>
+    </div>
+    <div class="rp-notice">
+      <div class="rp-notice-lbl">리포트 안내</div>
+      <div class="rp-notice-txt">본 리포트는 제출하신 이력서·포트폴리오와 사전 설문 내용을 바탕으로 작성된 취업 준비 진단 자료입니다. 특정 채용 결과를 보장하지 않습니다.</div>
+    </div>
+  </div>`;
+  return div;
+}
+
+function buildEmploymentPortfolioContent(a) {
+  const strengths = (a.portfolioStrengths || []).map(s => `
+    <div class="rp-sw-item">
+      <div class="rp-sw-dot s"></div>
+      <div><span class="rp-sw-title">${s.title}</span><div class="rp-sw-desc">${s.desc}</div></div>
+    </div>`).join('');
+  const improvements = buildEditItems(a.portfolioImprovements);
+
+  const noPortfolio = !(a.portfolioStrengths || []).length && !(a.portfolioImprovements || []).length;
+
+  return `<div class="rp-sec">
+      <div class="rp-sh"><div class="rp-sn">01</div><div class="rp-st">포트폴리오 진단</div><div class="rp-se">Portfolio Review</div></div>
+      ${noPortfolio ? '<div class="rd-text" style="color:var(--ink4);">포트폴리오가 첨부되지 않아 이 항목은 평가하지 못했습니다.</div>' : ''}
+      ${strengths ? `<div class="rp-sw" style="margin-bottom:14px;">
+        <div class="rp-sw-col" style="flex:1;">
+          <div class="rp-sw-head">강점</div>
+          <div>${strengths}</div>
+        </div>
+      </div>` : ''}
+      ${improvements}
+    </div>`;
+}
+
+function buildEmploymentResumeStrategyContent(i, a) {
+  const edits = buildEditItems(a.resumeEdits);
+
+  return `<div class="rp-sec">
+      <div class="rp-sh"><div class="rp-sn">02</div><div class="rp-st">이력서 진단 &amp; 지원 전략</div><div class="rp-se">Resume &amp; Strategy</div></div>
+      ${edits}
+      <div style="background:var(--navy);border-radius:2px;padding:14px 18px;margin-top:12px;">
+        <div style="font-size:9px;letter-spacing:2px;color:var(--gold2);text-transform:uppercase;font-weight:700;margin-bottom:8px;">지원 전략</div>
+        <div style="font-size:10.5px;color:rgba(255,255,255,.7);line-height:1.85;">${a.applicationStrategy || ''}</div>
+      </div>
+      ${a.rejectionFeedback ? `<div style="border-left:2px solid var(--gold2);background:var(--bg);padding:10px 14px;margin-top:12px;">
+        <div style="font-size:8px;letter-spacing:1.5px;color:var(--ink4);text-transform:uppercase;font-weight:700;margin-bottom:5px;">불합격 사유 대응</div>
+        <div style="font-size:10px;color:var(--ink2);line-height:1.7;">${a.rejectionFeedback}</div>
+      </div>` : ''}
+      ${a.salaryNote ? `<div style="border-left:2px solid var(--rule);padding:10px 14px;margin-top:10px;">
+        <div style="font-size:8px;letter-spacing:1.5px;color:var(--ink4);text-transform:uppercase;font-weight:700;margin-bottom:5px;">처우 관련 코멘트</div>
+        <div style="font-size:10px;color:var(--ink2);line-height:1.7;">${a.salaryNote}</div>
+      </div>` : ''}
+    </div>`;
+}
+
+function buildEmploymentActionContent(i, a) {
+  const actions = (a.actionPlan || []).map((act, idx) => `
+    <div class="rp-next-row"><div class="rp-next-dot"></div><div class="rp-next-text"><strong>${idx + 1}.</strong> ${act}</div></div>`).join('');
+
+  const nameLine = i.consultantNameEn
+    ? i.consultantNameEn + (i.consultantName ? ` (${i.consultantName})` : '')
+    : (i.consultantName || '');
+  const bioLine = [i.consultantTitle, i.consultantBio].filter(Boolean).join(' · ');
+
+  return `<div class="rp-sec">
+      <div class="rp-sh"><div class="rp-sn">03</div><div class="rp-st">실행 플랜</div><div class="rp-se">Action Plan</div></div>
+      <div class="rp-next">
+        ${actions}
+      </div>
+    </div>
+    <div class="rp-sec">
+      <div class="rp-sh"><div class="rp-sn">Note</div><div class="rp-st">담당 컨설턴트 코멘트</div><div class="rp-se">Consultant's Note</div></div>
+      <div class="rp-hh-final">
+        <div class="rp-hh-final-lbl">${i.candidateName || ''} 님께</div>
+        <div class="rp-hh-final-text">${a.consultantNote || ''}</div>
+      </div>
+      <div style="padding-top:10px;border-top:1px solid var(--rule);text-align:right;">
+        ${nameLine ? `<div style="font-family:var(--serif);font-size:13px;font-weight:700;color:var(--navy);margin-bottom:2px;">${nameLine}</div>` : ''}
+        ${bioLine ? `<div style="font-size:9px;color:var(--ink4);line-height:1.4;">${bioLine}</div>` : ''}
+        <div style="font-size:10px;font-weight:700;color:var(--navy);margin-top:2px;letter-spacing:1px;">㈜더라이징스타헤딩 · HEDING</div>
+      </div>
+    </div>`;
+}
+
 // ── PDF 다운로드 ──
 async function downloadReport() {
   const btn = document.getElementById('downloadBtn');
@@ -1639,16 +1915,23 @@ async function downloadReport() {
       const canvas = await html2canvas(pages[i], {
         scale: 2,
         backgroundColor: '#ffffff',
-        useCORS: true
+        useCORS: true,
+        onclone: (clonedDoc) => {
+          // 화면용 그림자 효과가 캡처에 섞여 인쇄 시 어두운 테두리로 남는 것을 방지
+          clonedDoc.querySelectorAll('.report-page').forEach(el => {
+            el.style.boxShadow = 'none';
+          });
+        }
       });
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const imgData = canvas.toDataURL('image/png');
       const imgHeight = (canvas.height * pageWidth) / canvas.width;
 
       if (i > 0) pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, 0, pageWidth, imgHeight);
+      pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeight);
     }
 
-    const fileName = reportMode === 'resume' ? 'HEDING_이력서진단리포트.pdf' : 'HEDING_이직진단리포트.pdf';
+    const fileNameMap = { resume: 'HEDING_이력서진단리포트.pdf', employment: 'HEDING_취업컨설팅리포트.pdf' };
+    const fileName = fileNameMap[reportMode] || 'HEDING_이직진단리포트.pdf';
     pdf.save(fileName);
   } catch (err) {
     console.error('PDF 생성 오류:', err);
@@ -1669,6 +1952,10 @@ function hideError() {
   document.getElementById('errorMsg').classList.remove('visible');
 }
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── 초기화: 페이지 로드 시 기본 모드(취업 컨설팅)에 맞는 필드만 보이도록 적용 ──
+// (이 호출이 없으면 탭을 한 번도 안 눌렀을 때 3개 모드 필드가 전부 동시에 보이는 문제가 있었음)
+setReportMode('employment');
 </script>
 </body>
 </html>
