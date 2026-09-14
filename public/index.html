@@ -866,11 +866,9 @@ body {
 <script>
 // ── 전역 상태 ──
 let resumeText = '';
-let resumeFileBase64 = '';
-let resumeFileMediaType = '';
+let resumeFileImages = []; // 텍스트 추출 실패 시: 페이지별 압축 이미지 배열
 let portfolioText = '';
-let portfolioFileBase64 = '';
-let portfolioFileMediaType = '';
+let portfolioFileImages = [];
 let reportData = {};
 let isGenerating = false;
 let reportMode = 'employment'; // 기본값: 취업 컨설팅 (다른 값: 'transfer' 이직 진단 | 'resume' 이력서 진단)
@@ -950,8 +948,7 @@ async function handleResumeUpload(event) {
 
   // 매 업로드마다 상태 초기화
   resumeText = '';
-  resumeFileBase64 = '';
-  resumeFileMediaType = '';
+  resumeFileImages = [];
   document.getElementById('extractedInfo').classList.remove('visible');
 
   try {
@@ -968,13 +965,16 @@ async function handleResumeUpload(event) {
 
     if (resumeText.length < TEXT_EXTRACT_MIN_LENGTH) {
       // 2-A. 텍스트가 부족하면 (이미지·디자인 위주 이력서로 판단) 이미지 분석 모드로 전환
-      const fileMb = file.size / 1024 / 1024;
-      if (fileMb > VISION_MAX_FILE_MB) {
-        throw new Error(`이력서에서 텍스트를 읽지 못했고, 이미지 분석을 위한 파일 크기(${fileMb.toFixed(1)}MB)가 ${VISION_MAX_FILE_MB}MB 상한을 넘습니다. 파일을 압축하거나 페이지 수를 줄여서 다시 시도해주세요.`);
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext !== 'pdf') {
+        throw new Error('이력서에서 텍스트를 읽지 못했습니다. Word 파일은 이미지 분석 모드를 지원하지 않으니, PDF로 변환해서 다시 시도해주세요.');
       }
-      resumeFileBase64 = await readFileAsBase64(file);
-      resumeFileMediaType = 'application/pdf';
-      modeNote = ' · 이미지 기반 분석 모드 (자동 정보 추출 생략 — 후보자 정보를 직접 입력해주세요)';
+      const result = await convertPdfToCompressedImages(file, VISION_MAX_TOTAL_BYTES);
+      if (result.images.length === 0) {
+        throw new Error('이력서에서 텍스트도, 이미지도 읽어내지 못했습니다. 파일이 손상되었거나 지원하지 않는 형식일 수 있습니다.');
+      }
+      resumeFileImages = result.images;
+      modeNote = ` · 이미지 기반 분석 모드 (${result.usedPages}/${result.totalPages}페이지 사용${result.truncated ? ', 일부 페이지 생략됨' : ''}, 자동 정보 추출 생략 — 직접 입력해주세요)`;
       document.getElementById('extractedFields').innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,.3)">이미지 기반 이력서는 자동 추출이 되지 않습니다. 좌측 입력란에 직접 입력해주세요.</div>';
       document.getElementById('extractedInfo').classList.add('visible');
     } else {
@@ -1014,21 +1014,52 @@ async function handleResumeUpload(event) {
   }
 }
 
-function readFileAsBase64(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      // reader.result 형식: "data:application/pdf;base64,JVBERi0..."
-      const commaIdx = reader.result.indexOf(',');
-      resolve(commaIdx !== -1 ? reader.result.slice(commaIdx + 1) : reader.result);
-    };
-    reader.onerror = () => reject(new Error('파일을 읽는 중 오류가 발생했습니다.'));
-    reader.readAsDataURL(file);
-  });
+// PDF를 페이지별 저화질 JPEG로 변환 (Vercel 함수 요청 용량 4.5MB 한도를 우회하기 위함)
+async function convertPdfToCompressedImages(file, maxTotalBytes) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const MAX_PAGES = 10;
+  const pagesToUse = Math.min(pdf.numPages, MAX_PAGES);
+
+  const images = [];
+  let cumulativeBytes = 0;
+  let truncated = pdf.numPages > MAX_PAGES;
+
+  for (let pageNum = 1; pageNum <= pagesToUse; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 1.0 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    let quality = 0.65;
+    let dataUrl = canvas.toDataURL('image/jpeg', quality);
+    let base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+    let approxBytes = base64.length * 0.75; // base64 길이 → 원본 바이트 근사치
+
+    // 이 페이지 하나만으로 예산을 넘으면, 화질을 낮춰서 한 번 더 시도
+    if (cumulativeBytes + approxBytes > maxTotalBytes && quality > 0.3) {
+      dataUrl = canvas.toDataURL('image/jpeg', 0.35);
+      base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+      approxBytes = base64.length * 0.75;
+    }
+
+    if (cumulativeBytes + approxBytes > maxTotalBytes) {
+      truncated = true;
+      break;
+    }
+
+    images.push(base64);
+    cumulativeBytes += approxBytes;
+  }
+
+  return { images, truncated, totalPages: pdf.numPages, usedPages: images.length };
 }
 
 const TEXT_EXTRACT_MIN_LENGTH = 150; // 이 이하면 "이미지 위주"로 판단
-const VISION_MAX_FILE_MB = 20; // 서버 업로드 안정성을 위한 보수적 상한 (Anthropic 자체 한도 32MB보다 여유 있게)
+const VISION_MAX_TOTAL_BYTES = 1.4 * 1024 * 1024; // 파일 1개당 압축 이미지 총량 예산 (약 1.4MB, base64 변환 후에도 안전 마진 확보)
 
 async function handlePortfolioUpload(event) {
   const file = event.target.files[0];
@@ -1039,8 +1070,7 @@ async function handlePortfolioUpload(event) {
 
   // 매 업로드마다 상태 초기화 (이전 파일의 잔여 데이터가 섞이지 않도록)
   portfolioText = '';
-  portfolioFileBase64 = '';
-  portfolioFileMediaType = '';
+  portfolioFileImages = [];
 
   try {
     // 1단계: 텍스트 추출 시도 (실패해도 전체 플로우는 계속 진행)
@@ -1054,15 +1084,14 @@ async function handlePortfolioUpload(event) {
 
     let modeNote = '';
 
-    // 2단계: 텍스트가 부족하면 (이미지·디자인 위주로 판단) 원본 파일을 이미지 분석용으로 준비
+    // 2단계: 텍스트가 부족하면 (이미지·디자인 위주로 판단) 페이지를 압축 이미지로 변환해서 이미지 분석용으로 준비
     if (portfolioText.length < TEXT_EXTRACT_MIN_LENGTH) {
-      const fileMb = file.size / 1024 / 1024;
-      if (fileMb > VISION_MAX_FILE_MB) {
-        throw new Error(`포트폴리오에서 텍스트를 읽지 못했고, 이미지 분석을 위한 파일 크기(${fileMb.toFixed(1)}MB)가 ${VISION_MAX_FILE_MB}MB 상한을 넘습니다. 파일을 압축하거나 페이지 수를 줄여서 다시 시도해주세요.`);
+      const result = await convertPdfToCompressedImages(file, VISION_MAX_TOTAL_BYTES);
+      if (result.images.length === 0) {
+        throw new Error('포트폴리오에서 텍스트도, 이미지도 읽어내지 못했습니다. 파일이 손상되었거나 지원하지 않는 형식일 수 있습니다.');
       }
-      portfolioFileBase64 = await readFileAsBase64(file);
-      portfolioFileMediaType = 'application/pdf';
-      modeNote = ' · 이미지 기반 분석 모드로 처리됩니다';
+      portfolioFileImages = result.images;
+      modeNote = ` · 이미지 기반 분석 모드 (${result.usedPages}/${result.totalPages}페이지 사용${result.truncated ? ', 일부 페이지 생략됨' : ''})`;
     }
 
     zone.classList.add('uploaded');
@@ -1137,8 +1166,8 @@ async function generateReport() {
     };
     const endpoint = endpointMap[reportMode] || '/api/generate-report';
     const body = reportMode === 'employment'
-      ? { resumeText, resumeFileBase64, resumeFileMediaType, portfolioText, portfolioFileBase64, portfolioFileMediaType, inputs }
-      : { resumeText, resumeFileBase64, resumeFileMediaType, inputs };
+      ? { resumeText, resumeFileImages, portfolioText, portfolioFileImages, inputs }
+      : { resumeText, resumeFileImages, inputs };
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
