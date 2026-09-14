@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 export const config = {
-  api: { bodyParser: { sizeLimit: '8mb' } } // 텍스트만 받으므로 충분 (원본 파일 용량과 무관)
+  api: { bodyParser: { sizeLimit: '30mb' } } // 이력서 원본 파일(base64, 최대 20MB)까지 수용
 };
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -10,8 +10,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { resumeText, inputs } = req.body;
+    const { resumeText, resumeFileBase64, resumeFileMediaType, inputs } = req.body;
     const i = inputs;
+    const useVisionForResume = !!(resumeFileBase64 && resumeFileMediaType);
 
     const targetTypeDesc = {
       startup: '스타트업(시리즈 B~D, IPO 준비 단계) 우선',
@@ -42,8 +43,9 @@ export default async function handler(req, res) {
 - 이직 기간: ${i.jobSearchPeriod || '미정'}
 - 필수 조건: ${i.mustHave || '없음'}
 
-## 이력서 원문 (텍스트 추출본)
-${trimmedResume}
+${useVisionForResume
+  ? '## 이력서\n이 메시지에 이력서 PDF 파일이 첨부되어 있습니다. 텍스트 추출이 되지 않는 이미지·디자인 위주 이력서이므로, 첨부된 파일을 직접 보고 분석하세요. 텍스트를 그대로 인용하는 대신, 실제로 본 내용을 구체적으로 서술하세요.'
+  : `## 이력서 원문 (텍스트 추출본)\n${trimmedResume}`}
 
 ## 사전 설문 응답 (신청자가 직접 작성)
 ${i.surveyContent || '설문 내용 없음'}
@@ -261,7 +263,7 @@ ${i.consultContent || '상담 내용 없음'}
 11. verdictBody와 hhFinal에서는 "~할 수도 있습니다", "~로 보입니다" 같은 모호한 헤지 표현을 최소화하고, 헤드헌터로서 분명한 의견(추천/비추천, 우선순위)을 제시한다. 근거 없는 단정은 금지하되, 판단은 명확히 한다.
 12. 웹 검색으로 실제 확인된 내용이 있으면 verdictBody 또는 timingDesc 중 한 곳에 자연스럽게 반영해 이직 타이밍 판단의 근거로 활용한다. 검색 결과가 없거나 애매하면 이 내용은 절대 언급하지 않는다. 검색된 내용을 길게 인용하지 말고, 사실관계만 한두 문장으로 요약해서 반영한다.
 13. 매우 중요: 웹 검색을 몇 번 하든, 검색 결과가 충분하든 부족하든 상관없이, 당신의 마지막 응답은 반드시 순수 JSON 객체 하나여야 한다. "검색 결과를 충분히 찾지 못해서" 같은 설명이나 사과, 코멘트를 절대 텍스트로 남기지 않는다. 검색이 부족하면 그냥 "기업 유형별 처우 격차 일반 원칙"과 이력서·설문·상담 내용만으로 합리적으로 채워서, 어떤 경우에도 완전한 JSON을 응답한다. 마크다운 코드블록도 쓰지 않는다.
-14. resumeEdits는 반드시 위에 주어진 "이력서 원문"에 실제로 등장하는 문장이나 구절을 original에 그대로(또는 아주 근접하게) 인용해야 한다. 이력서에 없는 문장을 지어내서 인용하지 않는다. 이력서가 너무 짧거나 고칠 만한 부분이 뚜렷하지 않으면 1개만 작성해도 되고, 억지로 지어내지 않는다. suggested는 실제로 그 문장을 대체할 수 있는 구체적인 문장이어야 하며, "더 좋게 써보세요" 같은 방향 제시가 아니라 완성된 대안 문장이어야 한다.
+14. resumeEdits의 original은, 이력서가 텍스트 기반이면 "이력서 원문"에 실제로 등장하는 문장이나 구절을 그대로(또는 아주 근접하게) 인용해야 한다. 이력서가 이미지 기반(첨부 파일 직접 분석)이면, 실제로 확인한 내용을 구체적으로 서술한다. 어느 경우든 실제로 없는 내용을 지어내서 인용하지 않는다. 이력서가 너무 짧거나 고칠 만한 부분이 뚜렷하지 않으면 1개만 작성해도 되고, 억지로 지어내지 않는다. suggested는 실제로 그 문장을 대체할 수 있는 구체적인 문장이어야 하며, "더 좋게 써보세요" 같은 방향 제시가 아니라 완성된 대안 문장이어야 한다.
 15. riskFactors는 이 후보자에게 실제로 해당하는 구체적 리스크만 작성한다 (예: 특정 자격 미보유로 특정 티어 지원 제한, 이 직무·연차 조합은 공고 자체가 적어 기간이 길어질 수 있음, 목표 처우가 시장 평균보다 높아 눈높이 조정이 필요할 수 있음 등). 모든 리포트에 붙일 수 있는 뻔한 경고("이직은 신중해야 합니다" 등)는 쓰지 않는다. 근거 없이 겁을 주기 위한 과장도 하지 않는다 — 사실 기반으로 담담하게 짚는다.
 16. 매우 중요 — salaryBands의 left와 width는 눈대중이 아니라 실제로 계산해야 한다. 절차: (1) 5개 band의 range에 들어갈 실제 금액(억원)들을 먼저 정한다. (2) 그 중 가장 낮은 금액을 SCALE_MIN, 가장 높은 금액에 10~20% 여유를 더한 값을 SCALE_MAX로 정한다. (3) 각 band의 left = (해당 band의 하한값 - SCALE_MIN) / (SCALE_MAX - SCALE_MIN) * 100, width = (해당 band의 상한값 - 하한값) / (SCALE_MAX - SCALE_MIN) * 100 로 계산해서 정수로 반올림한다. (4) "현재 처우"가 단일 확정값이면 width는 3~5 정도의 얇은 마커로 표시한다. 이 계산을 생략하고 임의의 숫자를 넣지 않는다 — 금액 크기와 막대 길이가 실제로 비례하지 않으면 이 그래프는 없는 것보다 나쁘다.
 17. 매우 중요 — timingLabel은 절대 항상 "즉시 실행기"로 단정하지 않는다. 반드시 아래 절차로 판단한다:
@@ -280,6 +282,13 @@ ${i.consultContent || '상담 내용 없음'}
     const MAX_ATTEMPTS = 2;
     let response, textBlocks = [], content = '', analysis = null, lastError = null, attemptsUsed = 0;
 
+    const requestContent = useVisionForResume
+      ? [
+          { type: 'document', source: { type: 'base64', media_type: resumeFileMediaType, data: resumeFileBase64 } },
+          { type: 'text', text: prompt }
+        ]
+      : prompt;
+
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       attemptsUsed = attempt;
 
@@ -287,7 +296,7 @@ ${i.consultContent || '상담 내용 없음'}
         model: 'claude-sonnet-4-6',
         max_tokens: 16000,
         tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 6 }],
-        messages: [{ role: 'user', content: prompt }]
+        messages: [{ role: 'user', content: requestContent }]
       });
 
       // 웹 검색 도구 사용 시 응답에 text 블록이 여러 개 섞여 올 수 있고,
@@ -348,3 +357,4 @@ ${i.consultContent || '상담 내용 없음'}
     return res.status(500).json({ error: err.message || '리포트 생성 중 오류' });
   }
 }
+

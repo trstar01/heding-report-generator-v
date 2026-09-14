@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 
 export const config = {
-  api: { bodyParser: { sizeLimit: '8mb' } } // 텍스트만 받으므로 충분
+  api: { bodyParser: { sizeLimit: '30mb' } } // 이력서 원본 파일(base64, 최대 20MB)까지 수용
 };
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -10,8 +10,9 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { resumeText, inputs } = req.body;
+    const { resumeText, resumeFileBase64, resumeFileMediaType, inputs } = req.body;
     const i = inputs;
+    const useVisionForResume = !!(resumeFileBase64 && resumeFileMediaType);
 
     const trimmedResume = (resumeText || '').length > 25000 ? resumeText.slice(0, 25000) : (resumeText || '이력서 미첨부');
 
@@ -28,8 +29,9 @@ export default async function handler(req, res) {
 - 경력: ${i.careerYears || '-'}
 - 자격증: ${i.certifications || '없음'}
 
-## 이력서 원문 (텍스트 추출본)
-${trimmedResume}
+${useVisionForResume
+  ? '## 이력서\n이 메시지에 이력서 PDF 파일이 첨부되어 있습니다. 텍스트 추출이 되지 않는 이미지·디자인 위주 이력서이므로, 첨부된 파일을 직접 보고 분석하세요. 텍스트를 그대로 인용하는 대신, 실제로 본 내용을 구체적으로 서술하세요 (예: "경력 요약 부분에는...").'
+  : `## 이력서 원문 (텍스트 추출본)\n${trimmedResume}`}
 
 ## 참고 컨텍스트 (있는 경우만)
 사전 설문: ${i.surveyContent || '없음'}
@@ -64,7 +66,7 @@ ${trimmedResume}
 절대 규칙 — 반드시 지킬 것:
 1. 모든 내용은 한국어로 작성하며, 입력된 오타·맞춤법 오류는 출력 시 자동으로 교정한다.
 2. sections는 이력서에 실제로 존재하는 섹션만 다룬다. 이력서에 없는 섹션(예: 자격증이 없는데 자격증 섹션)을 지어내서 만들지 않는다.
-3. 각 section의 original은 반드시 이력서 원문에서 실제로 발췌한 텍스트여야 한다. 요약하거나 재구성하지 말고 원문 그대로(또는 아주 근접하게) 인용한다. 이력서에 실제로 없는 내용을 original로 지어내지 않는다 — 이건 후보자가 가장 빨리 알아채는 신뢰 문제이므로 매우 중요하다. 원문을 정확히 인용할 자신이 없으면 그 섹션은 통째로 생략한다.
+3. 각 section의 original은, 이력서가 텍스트 기반이면 원문에서 실제로 발췌한 텍스트여야 한다 (요약·재구성 금지, 원문 그대로 인용). 이력서가 이미지 기반(첨부 파일 직접 분석)이면, 실제로 확인한 내용을 구체적으로 서술한다 (예: 어느 섹션에 무엇이 적혀 있었는지). 어느 경우든 실제로 없는 내용을 지어내지 않는다 — 이건 후보자가 가장 빨리 알아채는 신뢰 문제이므로 매우 중요하다. 확신이 없으면 그 섹션은 통째로 생략한다.
 4. improved는 실제로 완성된 최종 문장/문단이어야 하며, "이렇게 고치면 좋습니다" 같은 조언형 문장이 아니다. 이력서에 없는 경력·자격·수치를 지어내서 improved에 추가하지 않는다 — 표현과 구조는 개선하되, 사실을 조작하지 않는다.
 5. changes 배열은 구체적인 변경 근거여야 하며, "더 좋게 표현함" 같이 뭉뚱그린 표현은 쓰지 않는다. 모든 섹션에 똑같은 이유(예: 매번 "정량적 성과 수치 추가"만 반복)를 붙이지 말고, 그 섹션의 실제 원문 문제에 맞는 서로 다른 이유를 쓴다 (예: 수동태→능동태 전환, 직무 키워드 강화, 중복 표현 제거, 임팩트 있는 동사로 교체, 최신 경력을 앞으로 재배치 등).
 6. 강점만 늘어놓지 말고, 실제 문제(약한 동사, 성과 수치 부재, 두루뭉술한 표현, 직무 키워드 부족 등)를 정확히 짚는다.
@@ -80,13 +82,20 @@ ${trimmedResume}
     const MAX_ATTEMPTS = 2;
     let response, textBlocks = [], content = '', analysis = null, lastError = null, attemptsUsed = 0;
 
+    const requestContent = useVisionForResume
+      ? [
+          { type: 'document', source: { type: 'base64', media_type: resumeFileMediaType, data: resumeFileBase64 } },
+          { type: 'text', text: prompt }
+        ]
+      : prompt;
+
     for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       attemptsUsed = attempt;
 
       response = await client.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 16000,
-        messages: [{ role: 'user', content: prompt }]
+        messages: [{ role: 'user', content: requestContent }]
       });
 
       textBlocks = response.content.filter(b => b.type === 'text');
