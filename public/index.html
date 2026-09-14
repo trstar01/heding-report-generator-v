@@ -867,6 +867,8 @@ body {
 // ── 전역 상태 ──
 let resumeText = '';
 let portfolioText = '';
+let portfolioFileBase64 = '';
+let portfolioFileMediaType = '';
 let reportData = {};
 let isGenerating = false;
 let reportMode = 'employment'; // 기본값: 취업 컨설팅 (다른 값: 'transfer' 이직 진단 | 'resume' 이력서 진단)
@@ -988,6 +990,22 @@ async function handleResumeUpload(event) {
   }
 }
 
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // reader.result 형식: "data:application/pdf;base64,JVBERi0..."
+      const commaIdx = reader.result.indexOf(',');
+      resolve(commaIdx !== -1 ? reader.result.slice(commaIdx + 1) : reader.result);
+    };
+    reader.onerror = () => reject(new Error('파일을 읽는 중 오류가 발생했습니다.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+const TEXT_EXTRACT_MIN_LENGTH = 150; // 이 이하면 "이미지 위주"로 판단
+const VISION_MAX_FILE_MB = 10; // 서버 업로드 안정성을 위한 보수적 상한
+
 async function handlePortfolioUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -995,15 +1013,37 @@ async function handlePortfolioUpload(event) {
   const zone = document.getElementById('portfolioUploadZone');
   zone.innerHTML = `<div class="upload-icon">⏳</div><div class="upload-text"><strong>읽는 중...</strong>${file.name}<br><span style="font-size:11px;color:rgba(255,255,255,.3)">파일 용량에 따라 시간이 걸릴 수 있습니다</span></div>`;
 
+  // 매 업로드마다 상태 초기화 (이전 파일의 잔여 데이터가 섞이지 않도록)
+  portfolioText = '';
+  portfolioFileBase64 = '';
+  portfolioFileMediaType = '';
+
   try {
-    const extractedText = await extractFileText(file);
-    if (!extractedText || extractedText.trim().length < 20) {
-      throw new Error('포트폴리오에서 텍스트를 읽지 못했습니다. 스캔본 이미지 PDF일 경우 텍스트 추출이 어려울 수 있습니다.');
+    // 1단계: 텍스트 추출 시도 (실패해도 전체 플로우는 계속 진행)
+    let extractedText = '';
+    try {
+      extractedText = await extractFileText(file);
+    } catch (extractErr) {
+      extractedText = '';
     }
-    portfolioText = extractedText;
+    portfolioText = (extractedText || '').trim();
+
+    let modeNote = '';
+
+    // 2단계: 텍스트가 부족하면 (이미지·디자인 위주로 판단) 원본 파일을 이미지 분석용으로 준비
+    if (portfolioText.length < TEXT_EXTRACT_MIN_LENGTH) {
+      const fileMb = file.size / 1024 / 1024;
+      if (fileMb > VISION_MAX_FILE_MB) {
+        throw new Error(`포트폴리오에서 텍스트를 읽지 못했고, 이미지 분석을 위한 파일 크기(${fileMb.toFixed(1)}MB)가 ${VISION_MAX_FILE_MB}MB 상한을 넘습니다. 파일을 압축하거나 페이지 수를 줄여서 다시 시도해주세요.`);
+      }
+      portfolioFileBase64 = await readFileAsBase64(file);
+      portfolioFileMediaType = 'application/pdf';
+      modeNote = ' · 이미지 기반 분석 모드로 처리됩니다';
+    }
 
     zone.classList.add('uploaded');
-    zone.innerHTML = `<div class="upload-icon">✅</div><div class="upload-text"><strong style="color:#2E9E5F">업로드 완료</strong>${file.name}<br><span style="font-size:11px;color:rgba(255,255,255,.3)">${(portfolioText.length/1000).toFixed(1)}k자 추출됨</span></div>`;
+    const textNote = portfolioText.length > 0 ? `${(portfolioText.length/1000).toFixed(1)}k자 추출됨` : '텍스트 추출 안 됨';
+    zone.innerHTML = `<div class="upload-icon">✅</div><div class="upload-text"><strong style="color:#2E9E5F">업로드 완료</strong>${file.name}<br><span style="font-size:11px;color:rgba(255,255,255,.3)">${textNote}${modeNote}</span></div>`;
 
   } catch (err) {
     zone.classList.remove('uploaded');
@@ -1073,7 +1113,7 @@ async function generateReport() {
     };
     const endpoint = endpointMap[reportMode] || '/api/generate-report';
     const body = reportMode === 'employment'
-      ? { resumeText, portfolioText, inputs }
+      ? { resumeText, portfolioText, portfolioFileBase64, portfolioFileMediaType, inputs }
       : { resumeText, inputs };
     const res = await fetch(endpoint, {
       method: 'POST',
