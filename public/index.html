@@ -866,6 +866,8 @@ body {
 <script>
 // ── 전역 상태 ──
 let resumeText = '';
+let resumeFileBase64 = '';
+let resumeFileMediaType = '';
 let portfolioText = '';
 let portfolioFileBase64 = '';
 let portfolioFileMediaType = '';
@@ -946,43 +948,65 @@ async function handleResumeUpload(event) {
   const zone = document.getElementById('uploadZone');
   zone.innerHTML = `<div class="upload-icon">⏳</div><div class="upload-text"><strong>읽는 중...</strong>${file.name}<br><span style="font-size:11px;color:rgba(255,255,255,.3)">파일 용량에 따라 시간이 걸릴 수 있습니다</span></div>`;
 
+  // 매 업로드마다 상태 초기화
+  resumeText = '';
+  resumeFileBase64 = '';
+  resumeFileMediaType = '';
+  document.getElementById('extractedInfo').classList.remove('visible');
+
   try {
-    // 1. 브라우저에서 직접 텍스트 추출 (서버로 파일 전송 안 함 → 용량 제한 없음)
-    const extractedText = await extractFileText(file);
-    if (!extractedText || extractedText.trim().length < 20) {
-      throw new Error('이력서에서 텍스트를 읽지 못했습니다. 스캔본 이미지 PDF일 경우 텍스트 추출이 어려울 수 있습니다.');
+    // 1. 브라우저에서 직접 텍스트 추출 시도 (실패해도 전체 플로우는 계속 진행)
+    let extractedText = '';
+    try {
+      extractedText = await extractFileText(file);
+    } catch (extractErr) {
+      extractedText = '';
     }
-    resumeText = extractedText;
+    resumeText = (extractedText || '').trim();
 
-    // 2. 추출된 텍스트(가벼움)만 서버로 보내 핵심 정보 파싱
-    const res = await fetch('/api/parse-resume', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ resumeText: extractedText, filename: file.name })
-    });
+    let modeNote = '';
 
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
+    if (resumeText.length < TEXT_EXTRACT_MIN_LENGTH) {
+      // 2-A. 텍스트가 부족하면 (이미지·디자인 위주 이력서로 판단) 이미지 분석 모드로 전환
+      const fileMb = file.size / 1024 / 1024;
+      if (fileMb > VISION_MAX_FILE_MB) {
+        throw new Error(`이력서에서 텍스트를 읽지 못했고, 이미지 분석을 위한 파일 크기(${fileMb.toFixed(1)}MB)가 ${VISION_MAX_FILE_MB}MB 상한을 넘습니다. 파일을 압축하거나 페이지 수를 줄여서 다시 시도해주세요.`);
+      }
+      resumeFileBase64 = await readFileAsBase64(file);
+      resumeFileMediaType = 'application/pdf';
+      modeNote = ' · 이미지 기반 분석 모드 (자동 정보 추출 생략 — 후보자 정보를 직접 입력해주세요)';
+      document.getElementById('extractedFields').innerHTML = '<div style="font-size:12px;color:rgba(255,255,255,.3)">이미지 기반 이력서는 자동 추출이 되지 않습니다. 좌측 입력란에 직접 입력해주세요.</div>';
+      document.getElementById('extractedInfo').classList.add('visible');
+    } else {
+      // 2-B. 텍스트 추출 성공 — 기존 방식대로 서버에 보내 핵심 정보 자동 파싱
+      const res = await fetch('/api/parse-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeText, filename: file.name })
+      });
 
-    // 3. 자동 필드 채우기 — 업로드된 이력서 기준으로 항상 덮어씀
-    const e = data.extracted || {};
-    document.getElementById('candidateName').value = e.name || '';
-    document.getElementById('currentCompany').value = e.company || '';
-    document.getElementById('currentTitle').value = e.title || '';
-    document.getElementById('careerYears').value = e.career || '';
-    document.getElementById('currentSalary').value = e.salary || '';
-    document.getElementById('certifications').value = e.certifications || '';
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
 
-    // 추출 정보 표시
-    const fieldsHtml = Object.entries(e)
-      .filter(([k, v]) => v)
-      .map(([k, v]) => `<div class="extracted-field"><span class="extracted-field-lbl">${getLbl(k)}</span><span class="extracted-field-val">${v}</span></div>`)
-      .join('');
-    document.getElementById('extractedFields').innerHTML = fieldsHtml || '<div style="font-size:12px;color:rgba(255,255,255,.3)">자동 추출된 항목이 없습니다. 좌측 입력란에 직접 입력해주세요.</div>';
-    document.getElementById('extractedInfo').classList.add('visible');
+      const e = data.extracted || {};
+      document.getElementById('candidateName').value = e.name || '';
+      document.getElementById('currentCompany').value = e.company || '';
+      document.getElementById('currentTitle').value = e.title || '';
+      document.getElementById('careerYears').value = e.career || '';
+      document.getElementById('currentSalary').value = e.salary || '';
+      document.getElementById('certifications').value = e.certifications || '';
+
+      const fieldsHtml = Object.entries(e)
+        .filter(([k, v]) => v)
+        .map(([k, v]) => `<div class="extracted-field"><span class="extracted-field-lbl">${getLbl(k)}</span><span class="extracted-field-val">${v}</span></div>`)
+        .join('');
+      document.getElementById('extractedFields').innerHTML = fieldsHtml || '<div style="font-size:12px;color:rgba(255,255,255,.3)">자동 추출된 항목이 없습니다. 좌측 입력란에 직접 입력해주세요.</div>';
+      document.getElementById('extractedInfo').classList.add('visible');
+    }
 
     zone.classList.add('uploaded');
-    zone.innerHTML = `<div class="upload-icon">✅</div><div class="upload-text"><strong style="color:#2E9E5F">업로드 완료</strong>${file.name}<br><span style="font-size:11px;color:rgba(255,255,255,.3)">${(resumeText.length/1000).toFixed(1)}k자 추출됨</span></div>`;
+    const textNote = resumeText.length > 0 ? `${(resumeText.length/1000).toFixed(1)}k자 추출됨` : '텍스트 추출 안 됨';
+    zone.innerHTML = `<div class="upload-icon">✅</div><div class="upload-text"><strong style="color:#2E9E5F">업로드 완료</strong>${file.name}<br><span style="font-size:11px;color:rgba(255,255,255,.3)">${textNote}${modeNote}</span></div>`;
 
   } catch (err) {
     zone.classList.remove('uploaded');
@@ -1004,7 +1028,7 @@ function readFileAsBase64(file) {
 }
 
 const TEXT_EXTRACT_MIN_LENGTH = 150; // 이 이하면 "이미지 위주"로 판단
-const VISION_MAX_FILE_MB = 10; // 서버 업로드 안정성을 위한 보수적 상한
+const VISION_MAX_FILE_MB = 20; // 서버 업로드 안정성을 위한 보수적 상한 (Anthropic 자체 한도 32MB보다 여유 있게)
 
 async function handlePortfolioUpload(event) {
   const file = event.target.files[0];
@@ -1113,8 +1137,8 @@ async function generateReport() {
     };
     const endpoint = endpointMap[reportMode] || '/api/generate-report';
     const body = reportMode === 'employment'
-      ? { resumeText, portfolioText, portfolioFileBase64, portfolioFileMediaType, inputs }
-      : { resumeText, inputs };
+      ? { resumeText, resumeFileBase64, resumeFileMediaType, portfolioText, portfolioFileBase64, portfolioFileMediaType, inputs }
+      : { resumeText, resumeFileBase64, resumeFileMediaType, inputs };
     const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
