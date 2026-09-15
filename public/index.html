@@ -1874,15 +1874,18 @@ function renderEmploymentReport(data) {
   const i = data.inputs;
   const a = data.analysis;
 
-  const flat = [
-    { key: 'portfolio', html: buildEmploymentPortfolioContent(a) },
-    { key: 'resumeStrategy', html: buildEmploymentResumeStrategyContent(i, a) },
-    { key: 'actionNote', html: buildEmploymentActionContent(i, a) }
-  ];
+  const hasPortfolio = !!((a.portfolioStrengths && a.portfolioStrengths.length) || (a.portfolioImprovements && a.portfolioImprovements.length));
+
+  const flat = [];
+  if (hasPortfolio) {
+    flat.push({ key: 'portfolio', html: buildEmploymentPortfolioContent(a) });
+  }
+  flat.push({ key: 'resumeStrategy', html: buildEmploymentResumeStrategyContent(i, a) });
+  flat.push({ key: 'actionNote', html: buildEmploymentActionContent(i, a) });
 
   const { pageDivs, totalPages } = packSections(flat, i, '취업 컨설팅 리포트');
 
-  preview.appendChild(buildEmploymentCover(i, a, totalPages));
+  preview.appendChild(buildEmploymentCover(i, a, totalPages, hasPortfolio));
   pageDivs.forEach(div => preview.appendChild(div));
 
   document.querySelectorAll('.report-page').forEach(page => {
@@ -1891,7 +1894,7 @@ function renderEmploymentReport(data) {
   });
 }
 
-function buildEmploymentCover(i, a, totalPages) {
+function buildEmploymentCover(i, a, totalPages, hasPortfolio) {
   const div = document.createElement('div');
   div.className = 'report-page';
 
@@ -1912,7 +1915,7 @@ function buildEmploymentCover(i, a, totalPages) {
     </div>
     <div class="rp-notice">
       <div class="rp-notice-lbl">리포트 안내</div>
-      <div class="rp-notice-txt">본 리포트는 제출하신 이력서·포트폴리오와 사전 설문 내용을 바탕으로 작성된 취업 준비 진단 자료입니다. 특정 채용 결과를 보장하지 않습니다.</div>
+      <div class="rp-notice-txt">본 리포트는 제출하신 이력서·포트폴리오와 사전 설문 내용을 바탕으로 작성된 취업 준비 진단 자료입니다. 특정 채용 결과를 보장하지 않습니다.${!hasPortfolio ? ' 포트폴리오는 첨부되지 않았거나 분석이 어려운 형식이라, 본 리포트에는 포트폴리오 진단 항목이 포함되어 있지 않습니다.' : ''}</div>
     </div>
   </div>`;
   return div;
