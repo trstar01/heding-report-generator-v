@@ -1859,6 +1859,11 @@ function buildResumeSectionChunk(s) {
 // ══════════════════════════════════════════
 
 function buildEditItems(items) {
+  return buildEditItemList(items).join('');
+}
+
+// 수정 제안 카드를 1개씩 배열로 반환 (페이지 나눔 단위)
+function buildEditItemList(items) {
   return (items || []).map(e => `
     <div class="rp-edit-item">
       <div class="rp-edit-label">원문</div>
@@ -1866,7 +1871,17 @@ function buildEditItems(items) {
       <div class="rp-edit-label">HEDING 제안</div>
       <div class="rp-edit-suggested">${e.suggested || ''}</div>
       <div class="rp-edit-reason">${e.reason || ''}</div>
-    </div>`).join('');
+    </div>`);
+}
+
+// 블록 배열 → 첫 블록에 섹션 제목을 붙이고, 마지막 블록 뒤에 섹션 간 여백을 둠
+function withSectionHeader(headerHtml, blocks) {
+  if (!blocks.length) blocks = [''];
+  return blocks.map((b, idx) => {
+    const head = idx === 0 ? headerHtml : '';
+    const tail = idx === blocks.length - 1 ? '<div style="height:22px"></div>' : '';
+    return `<div>${head}${b}${tail}</div>`;
+  });
 }
 
 function renderEmploymentReport(data) {
@@ -1876,12 +1891,13 @@ function renderEmploymentReport(data) {
 
   const hasPortfolio = !!((a.portfolioStrengths && a.portfolioStrengths.length) || (a.portfolioImprovements && a.portfolioImprovements.length));
 
+  // 각 섹션을 작은 블록(카드 단위)으로 쪼개서 넘겨야, 한 페이지에 다 안 들어갈 때 다음 페이지로 자연스럽게 넘어감
   const flat = [];
   if (hasPortfolio) {
-    flat.push({ key: 'portfolio', html: buildEmploymentPortfolioContent(a) });
+    buildEmploymentPortfolioContent(a).forEach(html => flat.push({ key: 'portfolio', html }));
   }
-  flat.push({ key: 'resumeStrategy', html: buildEmploymentResumeStrategyContent(i, a) });
-  flat.push({ key: 'actionNote', html: buildEmploymentActionContent(i, a) });
+  buildEmploymentResumeStrategyContent(i, a).forEach(html => flat.push({ key: 'resumeStrategy', html }));
+  buildEmploymentActionContent(i, a).forEach(html => flat.push({ key: 'actionNote', html }));
 
   const { pageDivs, totalPages } = packSections(flat, i, '취업 컨설팅 리포트');
 
@@ -1927,42 +1943,37 @@ function buildEmploymentPortfolioContent(a) {
       <div class="rp-sw-dot s"></div>
       <div><span class="rp-sw-title">${s.title}</span><div class="rp-sw-desc">${s.desc}</div></div>
     </div>`).join('');
-  const improvements = buildEditItems(a.portfolioImprovements);
-
   const noPortfolio = !(a.portfolioStrengths || []).length && !(a.portfolioImprovements || []).length;
 
-  return `<div class="rp-sec">
-      <div class="rp-sh"><div class="rp-sn">01</div><div class="rp-st">포트폴리오 진단</div><div class="rp-se">Portfolio Review</div></div>
-      ${noPortfolio ? '<div class="rd-text" style="color:var(--ink4);">포트폴리오가 첨부되지 않아 이 항목은 평가하지 못했습니다.</div>' : ''}
-      ${strengths ? `<div class="rp-sw" style="margin-bottom:14px;">
+  const header = `<div class="rp-sh"><div class="rp-sn">01</div><div class="rp-st">포트폴리오 진단</div><div class="rp-se">Portfolio Review</div></div>`;
+  const blocks = [];
+  if (noPortfolio) blocks.push('<div class="rd-text" style="color:var(--ink4);">포트폴리오가 첨부되지 않아 이 항목은 평가하지 못했습니다.</div>');
+  if (strengths) blocks.push(`<div class="rp-sw" style="margin-bottom:14px;">
         <div class="rp-sw-col" style="flex:1;">
           <div class="rp-sw-head">강점</div>
           <div>${strengths}</div>
         </div>
-      </div>` : ''}
-      ${improvements}
-    </div>`;
+      </div>`);
+  buildEditItemList(a.portfolioImprovements).forEach(h => blocks.push(h));
+  return withSectionHeader(header, blocks);
 }
 
 function buildEmploymentResumeStrategyContent(i, a) {
-  const edits = buildEditItems(a.resumeEdits);
-
-  return `<div class="rp-sec">
-      <div class="rp-sh"><div class="rp-sn">02</div><div class="rp-st">이력서 진단 &amp; 지원 전략</div><div class="rp-se">Resume &amp; Strategy</div></div>
-      ${edits}
-      <div style="background:var(--navy);border-radius:2px;padding:14px 18px;margin-top:12px;">
+  const header = `<div class="rp-sh"><div class="rp-sn">02</div><div class="rp-st">이력서 진단 &amp; 지원 전략</div><div class="rp-se">Resume &amp; Strategy</div></div>`;
+  const blocks = buildEditItemList(a.resumeEdits);
+  blocks.push(`<div style="background:var(--navy);border-radius:2px;padding:14px 18px;margin-top:12px;">
         <div style="font-size:9px;letter-spacing:2px;color:var(--gold2);text-transform:uppercase;font-weight:700;margin-bottom:8px;">지원 전략</div>
         <div style="font-size:10.5px;color:rgba(255,255,255,.7);line-height:1.85;">${a.applicationStrategy || ''}</div>
-      </div>
-      ${a.rejectionFeedback ? `<div style="border-left:2px solid var(--gold2);background:var(--bg);padding:10px 14px;margin-top:12px;">
+      </div>`);
+  if (a.rejectionFeedback) blocks.push(`<div style="border-left:2px solid var(--gold2);background:var(--bg);padding:10px 14px;margin-top:12px;">
         <div style="font-size:8px;letter-spacing:1.5px;color:var(--ink4);text-transform:uppercase;font-weight:700;margin-bottom:5px;">불합격 사유 대응</div>
         <div style="font-size:10px;color:var(--ink2);line-height:1.7;">${a.rejectionFeedback}</div>
-      </div>` : ''}
-      ${a.salaryNote ? `<div style="border-left:2px solid var(--rule);padding:10px 14px;margin-top:10px;">
+      </div>`);
+  if (a.salaryNote) blocks.push(`<div style="border-left:2px solid var(--rule);padding:10px 14px;margin-top:10px;">
         <div style="font-size:8px;letter-spacing:1.5px;color:var(--ink4);text-transform:uppercase;font-weight:700;margin-bottom:5px;">처우 관련 코멘트</div>
         <div style="font-size:10px;color:var(--ink2);line-height:1.7;">${a.salaryNote}</div>
-      </div>` : ''}
-    </div>`;
+      </div>`);
+  return withSectionHeader(header, blocks);
 }
 
 function buildEmploymentActionContent(i, a) {
@@ -1974,13 +1985,13 @@ function buildEmploymentActionContent(i, a) {
     : (i.consultantName || '');
   const bioLine = [i.consultantTitle, i.consultantBio].filter(Boolean).join(' · ');
 
-  return `<div class="rp-sec">
+  // 실행 플랜 / 컨설턴트 코멘트를 별도 블록으로 반환 (페이지 나눔 단위)
+  return [`<div class="rp-sec">
       <div class="rp-sh"><div class="rp-sn">03</div><div class="rp-st">실행 플랜</div><div class="rp-se">Action Plan</div></div>
       <div class="rp-next">
         ${actions}
       </div>
-    </div>
-    <div class="rp-sec">
+    </div>`, `<div class="rp-sec">
       <div class="rp-sh"><div class="rp-sn">Note</div><div class="rp-st">담당 컨설턴트 코멘트</div><div class="rp-se">Consultant's Note</div></div>
       <div class="rp-hh-final">
         <div class="rp-hh-final-lbl">${i.candidateName || ''} 님께</div>
@@ -1991,7 +2002,7 @@ function buildEmploymentActionContent(i, a) {
         ${bioLine ? `<div style="font-size:9px;color:var(--ink4);line-height:1.4;">${bioLine}</div>` : ''}
         <div style="font-size:10px;font-weight:700;color:var(--navy);margin-top:2px;letter-spacing:1px;">㈜더라이징스타헤딩 · HEDING</div>
       </div>
-    </div>`;
+    </div>`];
 }
 
 // ── PDF 다운로드 ──
