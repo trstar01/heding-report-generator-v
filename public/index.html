@@ -2005,7 +2005,9 @@ async function downloadReport() {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ unit: 'px', format: 'a4', orientation: 'portrait' });
     const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
     const pages = document.querySelectorAll('.report-page');
+    let shrunkPages = [];
 
     for (let i = 0; i < pages.length; i++) {
       const canvas = await html2canvas(pages[i], {
@@ -2019,11 +2021,30 @@ async function downloadReport() {
           });
         }
       });
-      const imgData = canvas.toDataURL('image/png');
-      const imgHeight = (canvas.height * pageWidth) / canvas.width;
+      // JPEG로 저장해 파일 용량을 크게 줄임 (PNG 대비 약 1/20)
+      const imgData = canvas.toDataURL('image/jpeg', 0.92);
+
+      // 내용이 A4보다 길면(직접 수정으로 글이 늘어난 경우 등) 잘리지 않도록 페이지 안에 맞춰 축소
+      let drawW = pageWidth;
+      let drawH = (canvas.height * pageWidth) / canvas.width;
+      if (drawH > pageHeight * 1.005) { // 0.5% 이내 반올림 오차는 무시
+        drawW = drawW * (pageHeight / drawH);
+        drawH = pageHeight;
+        shrunkPages.push(i + 1);
+      }
+      const x = (pageWidth - drawW) / 2;
 
       if (i > 0) pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, 0, pageWidth, imgHeight);
+      if (drawW < pageWidth) {
+        // 축소로 생긴 좌우 여백을 페이지 배경색으로 채움 (표지처럼 어두운 배경도 자연스럽게)
+        const px = canvas.getContext('2d').getImageData(4, 4, 1, 1).data;
+        pdf.setFillColor(px[0], px[1], px[2]);
+        pdf.rect(0, 0, pageWidth, pageHeight, 'F');
+      }
+      pdf.addImage(imgData, 'JPEG', x, 0, drawW, drawH);
+    }
+    if (shrunkPages.length) {
+      console.warn('A4보다 길어 축소된 페이지:', shrunkPages.join(', '));
     }
 
     const fileNameMap = { resume: 'HEDING_이력서진단리포트.pdf', employment: 'HEDING_취업컨설팅리포트.pdf' };
